@@ -1,0 +1,11 @@
+name: securechat_workspace
+description: SecureChat monorepo - user PWA app, admin panel app and shared package.
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+
+workspace:
+  - packages/shared
+  - apps/user_app
+  - apps/admin_app
