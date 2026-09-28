@@ -11,7 +11,29 @@ final _emojiOnly = RegExp(
 /// True for short emoji-only messages, rendered large like WhatsApp.
 bool isEmojiOnly(String text) => text.runes.length <= 12 && _emojiOnly.hasMatch(text.trim());
 
-/// Text with tappable links (opened in the browser).
+/// Our own links (invite links, chats) open inside the app instead of the browser.
+final _groupLink = RegExp(r'/group/([A-Za-z]{3}-[A-Za-z0-9]{6})');
+const _appHosts = {'securechat.candledust.online', 'app.securechat.in'};
+
+void openLink(BuildContext context, String url) {
+  final uri = Uri.tryParse(url.startsWith('http') ? url : 'https://$url');
+  if (uri == null) return;
+  if (_appHosts.contains(uri.host.toLowerCase())) {
+    final invite = _groupLink.firstMatch(uri.path);
+    // Invite link -> join directly in the app (no browser round trip).
+    if (invite != null) {
+      context.push(AppRoutes.joinByCodeOf(invite.group(1)!.toUpperCase()));
+      return;
+    }
+    if (uri.path.length > 1) {
+      context.push(uri.path);
+      return;
+    }
+  }
+  launchUrl(uri, mode: LaunchMode.externalApplication);
+}
+
+/// Text with tappable links (app links open in the app, others in the browser).
 class LinkifiedText extends StatelessWidget {
   const LinkifiedText(this.text, {super.key, required this.style, required this.linkColor});
 
@@ -36,10 +58,7 @@ class LinkifiedText extends StatelessWidget {
           alignment: PlaceholderAlignment.baseline,
           baseline: TextBaseline.alphabetic,
           child: GestureDetector(
-            onTap: () => launchUrl(
-              Uri.parse(url.startsWith('http') ? url : 'https://$url'),
-              mode: LaunchMode.externalApplication,
-            ),
+            onTap: () => openLink(context, url),
             child: Text(
               url,
               style: base.copyWith(color: linkColor, decoration: TextDecoration.underline),

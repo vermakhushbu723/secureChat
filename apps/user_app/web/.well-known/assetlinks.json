@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.securechat.user_app",
+      "sha256_cert_fingerprints": ["B1:B8:99:7F:DF:3A:9E:F6:CA:68:6D:2F:68:24:3B:2B:A8:36:E7:FB:0D:36:13:F8:93:07:F2:74:89:97:DD:D0"]
+    }
+  }
+]

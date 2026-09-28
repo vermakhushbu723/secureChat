@@ -196,6 +196,15 @@ class _Content extends StatelessWidget {
             ),
           );
 
+    // Private / Highly Protected file: no preview, opens only in the secure viewer.
+    if (m.media?.secure == true || (m.isProtected && m.isMedia && m.media == null)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [_SecureTile(message: m, fg: fg, sub: sub), ?caption],
+      );
+    }
+
     switch (m.type) {
       case DmType.text:
         return LinkifiedText(
@@ -523,6 +532,10 @@ class _Footer extends StatelessWidget {
           ),
           const SizedBox(width: 5),
         ],
+        if (m.isProtected && !m.deleted) ...[
+          Icon(m.visibility == 'highly_protected' ? Icons.gpp_good_outlined : Icons.lock_outline, size: 12, color: sub),
+          const SizedBox(width: 3),
+        ],
         Text(formatClock(m.createdAt), style: TextStyle(fontSize: 11, color: sub)),
         if (m.isMine && !m.deleted) ...[
           const SizedBox(width: 3),
@@ -606,6 +619,58 @@ class MessageMenuButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.only(left: 4),
           child: Icon(Icons.more_vert, size: 16, color: color),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lock tile for a protected file: name, size and "Tap to open in secure viewer".
+class _SecureTile extends StatelessWidget {
+  const _SecureTile({required this.message, required this.fg, required this.sub});
+
+  final DmMessage message;
+  final Color fg;
+  final Color sub;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = message;
+    final media = m.media;
+    final uploading = media == null;
+    final name = media?.name ?? m.localName ?? 'Protected file';
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: uploading || media.fileId == null ? null : () => context.push(AppRoutes.secureFileViewerOf(media.fileId!)),
+      child: Container(
+        width: 250,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: fg.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), shape: BoxShape.circle),
+              child: uploading
+                  ? Padding(padding: const EdgeInsets.all(10), child: CircularProgressIndicator(strokeWidth: 2, value: m.uploadProgress, color: fg))
+                  : Icon(Icons.lock, color: fg, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(
+                    uploading ? 'Encrypting...' : '🔒 Secure File  -  tap to open',
+                    style: TextStyle(color: sub, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

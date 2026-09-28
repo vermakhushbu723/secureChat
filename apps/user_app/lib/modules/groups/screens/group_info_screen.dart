@@ -135,7 +135,7 @@ class _Info extends StatelessWidget {
                       final secure = m.media?.secure == true;
                       return InkWell(
                         onTap: () => secure && m.media?.fileId != null
-                            ? context.push(AppRoutes.protectedContentOf(m.media!.fileId!))
+                            ? context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!))
                             : context.push(m.type == 'video' ? AppRoutes.videoViewerOf(m.id) : AppRoutes.imageViewerOf(m.id)),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10),

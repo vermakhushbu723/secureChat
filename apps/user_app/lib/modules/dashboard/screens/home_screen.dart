@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import '../../../core/core.dart';
 import '../../direct/data/direct_models.dart';
+import '../../direct/data/direct_repository.dart';
+import '../../direct/widgets/dm_avatar.dart';
 import '../../direct/screens/direct_list_screen.dart' show ConversationTile;
 import '../../direct/state/conversations_controller.dart';
 import '../../groups/data/group_models.dart';
@@ -65,20 +69,68 @@ class _HomeScreenState extends State<HomeScreen> {
   final _search = TextEditingController();
   _Filter _filter = _Filter.all;
 
+  // Server search (any word of a name / business name, mobile number, email ID).
+  Timer? _debounce;
+  String _peopleQuery = '';
+  List<DmUser> _people = const [];
+  bool _searchingPeople = false;
+
   @override
   void initState() {
     super.initState();
     _scroll.addListener(() {
       if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 300) _direct.loadMore();
     });
-    _search.addListener(() => setState(() {}));
+    _search.addListener(_onSearch);
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _scroll.dispose();
     _search.dispose();
     super.dispose();
+  }
+
+  void _onSearch() {
+    setState(() {});
+    final q = _search.text.trim();
+    _debounce?.cancel();
+    if (q.length < 2) {
+      if (_people.isNotEmpty || _peopleQuery.isNotEmpty) {
+        setState(() {
+          _people = const [];
+          _peopleQuery = '';
+        });
+      }
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 350), () => _findPeople(q));
+  }
+
+  Future<void> _findPeople(String q) async {
+    setState(() {
+      _peopleQuery = q;
+      _searchingPeople = true;
+    });
+    try {
+      final users = await DirectRepository.searchUsers(q);
+      if (mounted && q == _peopleQuery) setState(() => _people = users);
+    } on ApiException catch (_) {
+      if (mounted && q == _peopleQuery) setState(() => _people = const []);
+    } finally {
+      if (mounted && q == _peopleQuery) setState(() => _searchingPeople = false);
+    }
+  }
+
+  Future<void> _openPerson(DmUser u) async {
+    try {
+      final conv = await DirectRepository.openWith(u.id);
+      _direct.upsert(conv);
+      if (mounted) context.openDetail(AppRoutes.directChatOf(conv.id));
+    } on ApiException catch (e) {
+      if (mounted) context.showSnack(e.message);
+    }
   }
 
   Future<void> _refresh() => Future.wait([_groups.load(), _direct.load()]);
@@ -215,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(16), child: InfoBanner(icon: Icons.cloud_off, message: error))),
             if (loading)
               const SliverFillRemaining(hasScrollBody: false, child: Center(child: CircularProgressIndicator()))
-            else if (rows.isEmpty)
+            else if (rows.isEmpty && _people.isEmpty && !_searchingPeople)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: EmptyState(
@@ -243,6 +295,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   _DirectChat(:final c) => ConversationTile(key: ValueKey('d${c.id}'), conversation: c),
                 },
               ),
+            if (_search.text.trim().length >= 2) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                  child: Row(
+                    children: [
+                      Text('People on ${AppStrings.appName}', style: TextStyle(color: p.textSecondary, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      if (_searchingPeople) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ],
+                  ),
+                ),
+              ),
+              if (!_searchingPeople && _people.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: Text('No one found. Try a name, business name, mobile number or email ID.', style: TextStyle(color: p.textMuted, fontSize: 13)),
+                  ),
+                ),
+              SliverList.builder(
+                itemCount: _people.length,
+                itemBuilder: (context, i) {
+                  final u = _people[i];
+                  return ListTile(
+                    onTap: () => _openPerson(u),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    leading: DmAvatar.user(u, size: 50),
+                    title: Row(
+                      children: [
+                        Flexible(child: Text(u.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16))),
+                        if (u.isBusiness) ...[const SizedBox(width: 6), const Icon(Icons.storefront, size: 16, color: AppColors.primary)],
+                      ],
+                    ),
+                    subtitle: Text(
+                      [
+                        if (u.isBusiness) u.businessAddress ?? 'Business',
+                        if (!u.isBusiness && u.username != null) '@${u.username}',
+                        if (u.about.isNotEmpty) u.about,
+                      ].join('  -  '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ],
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 96),

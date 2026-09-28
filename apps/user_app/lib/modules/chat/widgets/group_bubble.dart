@@ -365,7 +365,7 @@ class _Visual extends StatelessWidget {
           ? null
           : () {
               if (secure && media?.fileId != null) {
-                context.push(AppRoutes.protectedContentOf(media!.fileId!));
+                context.push(AppRoutes.secureFileViewerOf(media!.fileId!));
               } else {
                 context.push(video ? AppRoutes.videoViewerOf(m.id) : AppRoutes.imageViewerOf(m.id));
               }
@@ -394,7 +394,7 @@ class _SecureTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final media = message.media;
     return InkWell(
-      onTap: media?.fileId == null ? null : () => context.push(AppRoutes.protectedContentOf(media!.fileId!)),
+      onTap: media?.fileId == null ? null : () => context.push(AppRoutes.secureFileViewerOf(media!.fileId!)),
       child: Container(
         width: 250,
         padding: const EdgeInsets.all(10),

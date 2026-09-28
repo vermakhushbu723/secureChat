@@ -135,10 +135,18 @@ class _BodyState extends State<_Body> {
           title: const Text('Blocked contacts'),
           onTap: () => context.push(AppRoutes.blockedUsers),
         ),
-        const ListTile(
-          leading: Icon(Icons.phone_locked_outlined),
-          title: Text('Mobile number & email'),
-          subtitle: Text('Never shown to other users'),
+        SwitchListTile(
+          secondary: const Icon(Icons.contact_phone_outlined),
+          title: const Text('Show mobile number & email'),
+          subtitle: Text(me.showContact ? 'Visible on your profile to other users' : 'Hidden from other users'),
+          value: me.showContact,
+          onChanged: _busy.contains('contact')
+              ? null
+              : (v) => _run(
+                  'contact',
+                  () => auth.updateProfile({'privacy': {'showContact': v}}),
+                  v ? 'Your number & email are now visible' : 'Your number & email are hidden',
+                ),
         ),
         const _Header('Chats'),
         ValueListenableBuilder<ThemeMode>(

@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:shared/shared.dart' show AccessType;
+
 import '../session/session_controller.dart';
 import 'api_client.dart';
 import 'api_config.dart';
@@ -24,6 +26,8 @@ class AuthUser {
     this.lastSeenVisible = true,
     this.readReceipts = true,
     this.searchable = true,
+    this.showContact = false,
+    this.subscription = const PlanStatus(),
     this.accountType = 'personal',
     this.businessAddress,
     this.profileCompleted = true,
@@ -42,6 +46,8 @@ class AuthUser {
     lastSeenVisible: (j['privacy'] as Map?)?['lastSeen'] != 'nobody',
     readReceipts: (j['privacy'] as Map?)?['readReceipts'] != false,
     searchable: (j['privacy'] as Map?)?['searchable'] != false,
+    showContact: (j['privacy'] as Map?)?['showContact'] == true,
+    subscription: PlanStatus.fromJson(j['subscription'] as Map?),
     accountType: j['accountType'] as String? ?? 'personal',
     businessAddress: j['businessAddress'] as String?,
     profileCompleted: j['profileCompleted'] != false,
@@ -64,6 +70,12 @@ class AuthUser {
   /// Settings: anyone can find me by user ID / name in search.
   final bool searchable;
 
+  /// Settings: show my mobile number & email to other users.
+  final bool showContact;
+
+  /// Trial / premium / extension (from the server, re-evaluated on every refresh).
+  final PlanStatus subscription;
+
   /// 'personal' or 'business' (business: [name] is the business name, [about] the bio).
   final String accountType;
   final String? businessAddress;
@@ -85,12 +97,33 @@ class AuthUser {
     'email': email,
     'about': about,
     'avatarUrl': avatarUrl,
-    'privacy': {'lastSeen': lastSeenVisible ? 'everyone' : 'nobody', 'readReceipts': readReceipts, 'searchable': searchable},
+    'privacy': {'lastSeen': lastSeenVisible ? 'everyone' : 'nobody', 'readReceipts': readReceipts, 'searchable': searchable, 'showContact': showContact},
+    'subscription': subscription.toJson(),
     'accountType': accountType,
     'businessAddress': businessAddress,
     'profileCompleted': profileCompleted,
     'locationSettings': {'mode': locationMode},
   };
+}
+
+/// Plan of the signed in user: 7 day trial, premium, admin extension or locked.
+class PlanStatus {
+  const PlanStatus({this.access = 'trial', this.daysLeft = 7, this.until});
+
+  factory PlanStatus.fromJson(Map<dynamic, dynamic>? j) => PlanStatus(
+    access: j?['access'] as String? ?? 'trial',
+    daysLeft: (j?['daysLeft'] as num?)?.toInt() ?? 0,
+    until: DateTime.tryParse(j?['until'] as String? ?? '')?.toLocal(),
+  );
+
+  /// trial | premium | extended | locked
+  final String access;
+  final int daysLeft;
+  final DateTime? until;
+
+  bool get active => access != 'locked';
+
+  Map<String, dynamic> toJson() => {'access': access, 'daysLeft': daysLeft, 'until': until?.toUtc().toIso8601String()};
 }
 
 /// Owns the tokens: persists them, refreshes them and (dis)connects the socket.
@@ -125,9 +158,10 @@ class AuthService {
     _refresh = prefs.getString(_kRefresh);
     final raw = prefs.getString(_kUser);
     if (_access == null || _refresh == null || raw == null) return;
-    user.value = AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    _setUser(AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>));
     Session.loggedIn.value = true;
     SocketService.instance.connect();
+    _listenProfile();
     // Refresh the cached profile; offline start keeps the cached one.
     unawaited(reloadMe().then((_) {}, onError: (Object _) {}));
   }
@@ -232,6 +266,7 @@ class AuthService {
     await _saveUser(me);
     Session.loggedIn.value = true;
     SocketService.instance.connect();
+    _listenProfile();
     return me;
   }
 
@@ -243,8 +278,23 @@ class AuthService {
     await prefs.setString(_kRefresh, refresh);
   }
 
-  Future<void> _saveUser(AuthUser me) async {
+  /// Profile changes made on another device or by the admin (plan, privacy...).
+  StreamSubscription<Map<String, dynamic>>? _profileSub;
+  void _listenProfile() {
+    _profileSub ??= SocketService.instance.on('user:updated').listen((data) {
+      if (data['id'] == userId && data.containsKey('privacy')) unawaited(_saveUser(AuthUser.fromJson(data)));
+    });
+  }
+
+  void _setUser(AuthUser? me) {
     user.value = me;
+    if (me != null) {
+      Session.access.value = AccessType.values.firstWhere((a) => a.name == me.subscription.access, orElse: () => AccessType.trial);
+    }
+  }
+
+  Future<void> _saveUser(AuthUser me) async {
+    _setUser(me);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kUser, jsonEncode(me.toJson()));
   }
@@ -252,7 +302,7 @@ class AuthService {
   Future<void> _clear() async {
     _access = null;
     _refresh = null;
-    user.value = null;
+    _setUser(null);
     Session.loggedIn.value = false;
     SocketService.instance.disconnect();
     final prefs = await SharedPreferences.getInstance();

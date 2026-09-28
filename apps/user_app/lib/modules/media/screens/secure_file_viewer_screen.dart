@@ -46,12 +46,15 @@ class _SecureViewerState extends State<_SecureViewer> {
   @override
   void initState() {
     super.initState();
+    // No screenshots / screen recording while a protected file is open (Android).
+    ScreenGuard.protect();
     _open();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    ScreenGuard.release();
     super.dispose();
   }
 
@@ -91,7 +94,6 @@ class _SecureViewerState extends State<_SecureViewer> {
     );
   }
 
-  String get _timeLeft => '${_left.inMinutes.toString().padLeft(2, '0')}:${(_left.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -100,38 +102,26 @@ class _SecureViewerState extends State<_SecureViewer> {
     return Scaffold(
       backgroundColor: context.palette.surfaceAlt,
       appBar: AppBar(
+        // Only what the viewer needs: sender, date & time, file name, description, "Secure File".
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(t?.name ?? 'Protected file', style: const TextStyle(fontSize: 16), overflow: TextOverflow.ellipsis),
-            Text(t == null ? 'Verifying access...' : '${t.visibility.label}  |  View only in app  |  ${formatBytes(t.size)}', style: const TextStyle(fontSize: 12)),
+            Text(
+              t == null ? 'Opening secure file...' : (t.senderName.isEmpty ? 'Protected file' : t.senderName),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (t?.sentAt != null)
+              Text('${formatListTime(t!.sentAt)}, ${formatClock(t.sentAt!)}', style: TextStyle(fontSize: 12, color: context.palette.textSecondary)),
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.info_outline), tooltip: 'File permissions', onPressed: () => context.push(AppRoutes.filePermissionOf(widget.fileId))),
+          IconButton(icon: const Icon(Icons.info_outline), tooltip: 'File details', onPressed: () => context.push(AppRoutes.filePermissionOf(widget.fileId))),
         ],
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            color: context.colors.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                Icon(Icons.enhanced_encryption_outlined, size: 18, color: context.colors.onPrimary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    t == null ? 'Requesting secure token...' : 'Secure viewer  |  token verified  |  streamed, not downloaded',
-                    style: TextStyle(color: context.colors.onPrimary, fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (t != null) Text('Session $_timeLeft', style: TextStyle(color: context.colors.onPrimary.withValues(alpha: 0.85), fontSize: 12)),
-              ],
-            ),
-          ),
+          if (t != null) _FileHeader(token: t),
           Expanded(child: _body(t, expired)),
         ],
       ),
@@ -182,10 +172,13 @@ class _SecureViewerState extends State<_SecureViewer> {
           'ALREADY_OPENED' => 'Already opened',
           'ACCESS_EXPIRED' => 'Access expired',
           'ADMINS_ONLY' => 'Admins only',
+          'SUBSCRIPTION_REQUIRED' => 'Premium required',
           _ => 'Access denied',
         },
         message: e.message,
-        action: TextButton.icon(onPressed: _open, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+        action: e.code == 'SUBSCRIPTION_REQUIRED'
+            ? FilledButton.icon(onPressed: () => context.push(AppRoutes.trialStatus), icon: const Icon(Icons.workspace_premium_outlined), label: const Text('Upgrade'))
+            : TextButton.icon(onPressed: _open, icon: const Icon(Icons.refresh), label: const Text('Try again')),
       );
     }
     if (t == null) return const Center(child: CircularProgressIndicator());
@@ -358,6 +351,44 @@ class _FileCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// File name, the sender's description (if any) and the "Secure File" badge.
+class _FileHeader extends StatelessWidget {
+  const _FileHeader({required this.token});
+
+  final FileTokenData token;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Container(
+      width: double.infinity,
+      color: context.colors.surface,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.insert_drive_file_outlined, size: 18, color: p.textSecondary),
+              const SizedBox(width: 8),
+              Expanded(child: Text(token.name, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: p.activeBg, borderRadius: BorderRadius.circular(12)),
+                child: const Text('🔒 Secure File', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          if (token.caption.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(token.caption, style: TextStyle(color: p.textSecondary, height: 1.4)),
+          ],
+        ],
       ),
     );
   }

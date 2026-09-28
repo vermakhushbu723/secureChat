@@ -189,6 +189,7 @@ class GroupSettings {
     this.approveNewMembers = false,
     this.restrictNewMembers = false,
     this.muteGroup = false,
+    this.freeAccess = false,
     this.publicForwarding = true,
     this.privateForwarding = false,
     this.trackForwardChain = true,
@@ -225,6 +226,7 @@ class GroupSettings {
       approveNewMembers: b(mem, 'approveNewMembers', false),
       restrictNewMembers: b(mem, 'restrictNewMembers', false),
       muteGroup: b(mem, 'muteGroup', false),
+      freeAccess: b(mem, 'freeAccess', false),
       publicForwarding: b(sec, 'publicForwarding', true),
       privateForwarding: b(sec, 'privateForwarding', false),
       trackForwardChain: b(sec, 'trackForwardChain', true),
@@ -252,6 +254,10 @@ class GroupSettings {
   bool approveNewMembers;
   bool restrictNewMembers;
   bool muteGroup;
+
+  /// Creator option: members without premium can reply and open protected files
+  /// while the group is premium.
+  bool freeAccess;
   bool publicForwarding;
   bool privateForwarding;
   bool trackForwardChain;
@@ -279,7 +285,7 @@ class GroupSettings {
       'membersCanSendMedia': membersCanSendMedia,
     },
     'contentRules': [for (final r in ContentRule.values) if (contentRules.contains(r)) r.name],
-    'members': {'approveNewMembers': approveNewMembers, 'restrictNewMembers': restrictNewMembers, 'muteGroup': muteGroup},
+    'members': {'approveNewMembers': approveNewMembers, 'restrictNewMembers': restrictNewMembers, 'muteGroup': muteGroup, 'freeAccess': freeAccess},
     'security': securityJson(),
   };
 
@@ -311,6 +317,8 @@ class GroupMe {
     this.canEditInfo = false,
     this.locationPlace,
     this.locationShared = false,
+    this.canOpenProtected = true,
+    this.plan = 'trial',
   });
 
   factory GroupMe.fromJson(Map<String, dynamic> j) {
@@ -327,6 +335,8 @@ class GroupMe {
       canEditInfo: j['canEditInfo'] == true,
       locationPlace: loc['place'] as String?,
       locationShared: loc['lat'] != null && loc['mode'] != 'none',
+      canOpenProtected: j['canOpenProtected'] != false,
+      plan: j['plan'] as String? ?? 'trial',
     );
   }
 
@@ -341,12 +351,27 @@ class GroupMe {
   final String? locationPlace;
   final bool locationShared;
 
+  /// Own trial / premium, or the group's premium when the creator allows it.
+  final bool canOpenProtected;
+
+  /// My plan: trial | premium | extended | locked.
+  final String plan;
+
   bool get isAdmin => role == MemberRole.owner || role == MemberRole.admin;
   bool get isOwner => role == MemberRole.owner;
 }
 
 class GroupDetail {
-  GroupDetail({required this.summary, required this.settings, required this.me, this.rules = '', this.createdByName = 'Member', this.createdAt});
+  GroupDetail({
+    required this.summary,
+    required this.settings,
+    required this.me,
+    this.rules = '',
+    this.createdByName = 'Member',
+    this.createdAt,
+    this.premiumActive = false,
+    this.premiumSource,
+  });
 
   factory GroupDetail.fromJson(Map<String, dynamic> j) => GroupDetail(
     summary: GroupSummary.fromJson(j),
@@ -355,6 +380,8 @@ class GroupDetail {
     rules: j['rules'] as String? ?? '',
     createdByName: _map(j['createdBy'])['displayName'] as String? ?? 'Member',
     createdAt: _date(j['createdAt']),
+    premiumActive: _map(j['premium'])['active'] == true,
+    premiumSource: _map(j['premium'])['source'] as String?,
   );
 
   final GroupSummary summary;
@@ -363,6 +390,10 @@ class GroupDetail {
   final String rules;
   final String createdByName;
   final DateTime? createdAt;
+
+  /// Premium group: the creator has premium ('owner') or the admin approved it ('approved').
+  final bool premiumActive;
+  final String? premiumSource;
 
   String get id => summary.id;
   String get name => summary.name;
@@ -405,6 +436,11 @@ class GroupMemberInfo {
     this.locationLng,
     this.locationUpdatedAt,
     this.canManage = false,
+    this.phone,
+    this.email,
+    this.about = '',
+    this.accountType = 'personal',
+    this.businessAddress,
   });
 
   factory GroupMemberInfo.fromJson(Map<String, dynamic> j) {
@@ -428,6 +464,11 @@ class GroupMemberInfo {
       locationLng: (loc['lng'] as num?)?.toDouble(),
       locationUpdatedAt: _date(loc['updatedAt']),
       canManage: j['canManage'] == true,
+      phone: j['phone'] as String?,
+      email: j['email'] as String?,
+      about: j['about'] as String? ?? '',
+      accountType: j['accountType'] as String? ?? 'personal',
+      businessAddress: j['businessAddress'] as String?,
     );
   }
 
@@ -449,6 +490,13 @@ class GroupMemberInfo {
   final double? locationLng;
   final DateTime? locationUpdatedAt;
   final bool canManage;
+
+  /// Only present when the member turned on "Show mobile number & email".
+  final String? phone;
+  final String? email;
+  final String about;
+  final String accountType;
+  final String? businessAddress;
 
   bool get hasLocation => locationLat != null && locationLng != null;
 
@@ -1090,7 +1138,22 @@ class ForwardDetailsData {
 // Protected files
 // ---------------------------------------------------------------------------
 class FileTokenData {
-  const FileTokenData({required this.streamUrl, required this.name, required this.mimeType, required this.kind, required this.size, required this.visibility, required this.watermarkName, required this.maskedId, required this.watermark, this.expiresIn = 1800});
+  const FileTokenData({
+    required this.streamUrl,
+    required this.name,
+    required this.mimeType,
+    required this.kind,
+    required this.size,
+    required this.visibility,
+    required this.watermarkName,
+    required this.maskedId,
+    required this.watermark,
+    this.expiresIn = 1800,
+    this.senderName = '',
+    this.sentAt,
+    this.caption = '',
+    this.screenshotProtection = true,
+  });
 
   factory FileTokenData.fromJson(Map<String, dynamic> j) {
     final w = _map(j['watermark']);
@@ -1105,6 +1168,10 @@ class FileTokenData {
       maskedId: w['maskedId'] as String? ?? '',
       watermark: w['enabled'] == true,
       expiresIn: (j['expiresIn'] as num?)?.toInt() ?? 1800,
+      senderName: j['senderName'] as String? ?? '',
+      sentAt: _date(j['sentAt']),
+      caption: j['caption'] as String? ?? '',
+      screenshotProtection: j['screenshotProtection'] != false,
     );
   }
 
@@ -1118,10 +1185,32 @@ class FileTokenData {
   final String maskedId;
   final bool watermark;
   final int expiresIn;
+
+  /// Secure viewer header: who sent it, when, and the description they added.
+  final String senderName;
+  final DateTime? sentAt;
+  final String caption;
+  final bool screenshotProtection;
 }
 
 class FileInfoData {
-  const FileInfoData({required this.fileId, required this.name, required this.size, required this.mimeType, required this.kind, required this.groupName, required this.visibility, required this.permissions, required this.revoked, required this.canManage, required this.message});
+  const FileInfoData({
+    required this.fileId,
+    required this.name,
+    required this.size,
+    required this.mimeType,
+    required this.kind,
+    required this.groupName,
+    required this.visibility,
+    required this.permissions,
+    required this.revoked,
+    required this.canManage,
+    this.message,
+    this.direct = false,
+    this.senderName = '',
+    this.sentAt,
+    this.caption = '',
+  });
 
   factory FileInfoData.fromJson(Map<String, dynamic> j) => FileInfoData(
     fileId: j['fileId'] as String,
@@ -1134,7 +1223,11 @@ class FileInfoData {
     permissions: GroupPermissions.fromJson(_map(j['permissions'])),
     revoked: j['revoked'] == true,
     canManage: j['canManage'] == true,
-    message: GroupMessage.fromJson(_map(j['message'])),
+    message: j['message'] is Map ? GroupMessage.fromJson(_map(j['message'])) : null,
+    direct: j['direct'] == true,
+    senderName: j['senderName'] as String? ?? '',
+    sentAt: _date(j['sentAt']),
+    caption: j['caption'] as String? ?? '',
   );
 
   final String fileId;
@@ -1147,7 +1240,15 @@ class FileInfoData {
   final GroupPermissions permissions;
   final bool revoked;
   final bool canManage;
-  final GroupMessage message;
+
+  /// Group message the file belongs to (null for 1-to-1 chats).
+  final GroupMessage? message;
+
+  /// File sent in a 1-to-1 chat (no group permissions to manage).
+  final bool direct;
+  final String senderName;
+  final DateTime? sentAt;
+  final String caption;
 }
 
 class AccessLogEntry {

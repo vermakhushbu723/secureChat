@@ -296,6 +296,20 @@ class _SettingsFormState extends State<_SettingsForm> {
                         value: _s.muteGroup,
                         onChanged: (v) => setState(() => _s.muteGroup = v),
                       ),
+                      const Divider(indent: 56),
+                      SwitchListTile(
+                        secondary: const Icon(Icons.workspace_premium_outlined),
+                        title: const Text('Members without premium can use this group'),
+                        subtitle: Text(
+                          widget.detail == null
+                              ? 'While the group is premium, every member can reply and open protected files'
+                              : widget.detail!.premiumActive
+                              ? 'Premium group (${widget.detail!.premiumSource == 'approved' ? 'approved by admin' : 'your premium'}): every member can reply and open protected files'
+                              : 'Works when you have premium or the admin approves this group',
+                        ),
+                        value: _s.freeAccess,
+                        onChanged: (v) => setState(() => _s.freeAccess = v),
+                      ),
                     ],
                   ),
                 ),

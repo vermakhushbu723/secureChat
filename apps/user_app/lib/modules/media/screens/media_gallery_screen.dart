@@ -49,7 +49,7 @@ class _GalleryState extends State<_Gallery> {
   void _open(GroupMessage m) {
     final media = m.media;
     if (media?.secure == true && media?.fileId != null) {
-      context.push(AppRoutes.protectedContentOf(media!.fileId!));
+      context.push(AppRoutes.secureFileViewerOf(media!.fileId!));
       return;
     }
     switch (m.type) {

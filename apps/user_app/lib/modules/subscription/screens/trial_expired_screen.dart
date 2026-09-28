@@ -18,10 +18,7 @@ class TrialExpiredScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
-            onPressed: () {
-              Session.access.value = AccessType.locked;
-              context.go(AppRoutes.home);
-            },
+            onPressed: () => context.go(AppRoutes.home),
             child: const Text('Continue read only'),
           ),
         ],

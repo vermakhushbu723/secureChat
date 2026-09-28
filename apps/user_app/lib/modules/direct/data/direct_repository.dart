@@ -108,10 +108,13 @@ class DirectRepository {
     String filename, {
     String? kind,
     double? duration,
+    bool secure = false,
     void Function(double progress)? onProgress,
   }) async {
     final form = FormData.fromMap({
       'file': MultipartFile.fromBytes(bytes, filename: filename, contentType: mimeOf(filename)),
+      // Private / Highly Protected: stored encrypted, never gets a public URL.
+      if (secure) 'secure': 'true',
       'kind': ?kind,
       if (duration != null) 'duration': duration.toStringAsFixed(1),
     });

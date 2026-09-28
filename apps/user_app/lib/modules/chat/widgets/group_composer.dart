@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,7 +10,7 @@ import '../../../core/core.dart';
 import '../../groups/state/group_chat_controller.dart';
 import '../../groups/state/group_sender.dart';
 import '../../secure_message/state/message_draft.dart';
-import 'chat_input_bar.dart' show LockedInputBar, pickVisibility;
+import 'chat_input_bar.dart' show pickVisibility;
 
 /// Group chat input: privacy level, emoji, attachments, camera, voice,
 /// reply / edit bar and the reason when the member may not send.
@@ -90,6 +91,89 @@ class _GroupComposerState extends State<GroupComposer> {
     }
   }
 
+  /// Attach inside the chat (no extra page): the privacy chosen with the lock icon applies.
+  Future<void> _attach() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12, left: 4),
+                child: Row(
+                  children: [
+                    Icon(chat.visibilityFor(_visibility).icon, size: 18, color: ctx.palette.textSecondary),
+                    const SizedBox(width: 6),
+                    Text('Sending as ${chat.visibilityFor(_visibility).label}', style: TextStyle(color: ctx.palette.textSecondary)),
+                  ],
+                ),
+              ),
+              Wrap(
+                spacing: 20,
+                runSpacing: 16,
+                children: [
+                  for (final o in const [
+                    ('gallery', Icons.photo_library_outlined, 'Gallery'),
+                    ('camera', Icons.photo_camera_outlined, 'Camera'),
+                    ('document', Icons.insert_drive_file_outlined, 'Document'),
+                    ('audio', Icons.headphones_outlined, 'Audio'),
+                    ('location', Icons.location_on_outlined, 'Location'),
+                  ])
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => Navigator.pop(ctx, o.$1),
+                      child: SizedBox(
+                        width: 68,
+                        child: Column(
+                          children: [
+                            CircleAvatar(radius: 26, backgroundColor: AppColors.primary, foregroundColor: Colors.white, child: Icon(o.$2)),
+                            const SizedBox(height: 6),
+                            Text(o.$3, style: const TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    if (choice == 'camera') return _camera();
+    if (choice == 'location') {
+      context.push(AppRoutes.myLocationFor(chat.groupId));
+      return;
+    }
+    final List<PlatformFile> files;
+    try {
+      files = await FilePicker.pickFiles(
+        type: switch (choice) {
+          'gallery' => FileType.media,
+          'audio' => FileType.audio,
+          _ => FileType.any,
+        },
+      );
+    } catch (e) {
+      if (mounted) context.showSnack('Could not open picker: $e');
+      return;
+    }
+    for (final f in files) {
+      if (!mounted) return;
+      final bytes = await f.readAsBytes();
+      final blocked = await chat.sendFile(bytes, f.name, GroupSender.typeOf(f.name), visibility: _visibility);
+      if (blocked != null && mounted) {
+        await GroupSender.handle(context, blocked);
+        return;
+      }
+    }
+  }
+
   Future<void> _camera() async {
     final XFile? shot;
     try {
@@ -117,8 +201,9 @@ class _GroupComposerState extends State<GroupComposer> {
 
   @override
   Widget build(BuildContext context) {
-    if (Session.chatLocked) return const LockedInputBar();
+    // The server decides (own plan, or the group's premium when the creator allows it).
     final reason = _blockedReason();
+    final needsPlan = chat.detail?.me.sendBlockedCode == 'SUBSCRIPTION_REQUIRED';
     if (reason != null) {
       return SafeArea(
         top: false,
@@ -129,9 +214,10 @@ class _GroupComposerState extends State<GroupComposer> {
           decoration: BoxDecoration(color: context.colors.surface, borderRadius: BorderRadius.circular(14)),
           child: Row(
             children: [
-              Icon(Icons.lock_outline, color: context.palette.textSecondary),
+              Icon(needsPlan ? Icons.workspace_premium_outlined : Icons.lock_outline, color: context.palette.textSecondary),
               const SizedBox(width: 10),
               Expanded(child: Text(reason, style: TextStyle(color: context.palette.textSecondary))),
+              if (needsPlan) TextButton(onPressed: () => context.push(AppRoutes.trialStatus), child: const Text('Upgrade')),
             ],
           ),
         ),
@@ -277,17 +363,7 @@ class _GroupComposerState extends State<GroupComposer> {
                   ),
                 ),
                 if (!editing) ...[
-                  IconButton(
-                    tooltip: 'Composer',
-                    icon: const Icon(Icons.open_in_full, size: 20),
-                    onPressed: () => context.push(AppRoutes.messageComposerOf(chat.groupId)),
-                  ),
-                  if (canMedia)
-                    IconButton(
-                      tooltip: 'Attach',
-                      icon: const Icon(Icons.attach_file),
-                      onPressed: () => context.push(AppRoutes.attachmentSelectionOf(chat.groupId)),
-                    ),
+                  if (canMedia) IconButton(tooltip: 'Attach', icon: const Icon(Icons.attach_file), onPressed: _attach),
                   if (!_hasText && canMedia)
                     IconButton(tooltip: 'Camera', icon: const Icon(Icons.photo_camera_outlined), onPressed: _camera),
                 ],

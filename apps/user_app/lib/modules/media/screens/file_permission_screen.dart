@@ -76,7 +76,8 @@ class _EditorState extends State<_Editor> {
   @override
   Widget build(BuildContext context) {
     final f = _f;
-    final manage = f.canManage && !f.revoked;
+    // 1-to-1 files have fixed protection (no group permissions to change).
+    final manage = f.canManage && !f.revoked && !f.direct;
     return Scaffold(
       appBar: AppBar(title: const Text('File Permissions')),
       body: FormPage(

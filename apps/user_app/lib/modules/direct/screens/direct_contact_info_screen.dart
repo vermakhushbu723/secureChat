@@ -121,9 +121,20 @@ class _DirectContactInfoScreenState extends State<DirectContactInfoScreen> {
                 ),
               ],
             ),
-            if (peer.about.isNotEmpty)
+            if (peer.about.isNotEmpty || peer.isBusiness || peer.phone != null || peer.email != null)
               GroupedCard(
-                children: [ListTile(title: Text(peer.about), subtitle: const Text('About'))],
+                children: [
+                  if (peer.about.isNotEmpty) ListTile(title: Text(peer.about), subtitle: Text(peer.isBusiness ? 'Bio' : 'About')),
+                  if (peer.isBusiness)
+                    ListTile(
+                      leading: const Icon(Icons.storefront_outlined),
+                      title: Text(peer.businessAddress ?? 'Business account'),
+                      subtitle: Text(peer.businessAddress == null ? 'Business' : 'Business address'),
+                    ),
+                  // Shown only when this user turned on "Show mobile number & email".
+                  if (peer.phone != null) ListTile(leading: const Icon(Icons.phone_outlined), title: Text(peer.phone!), subtitle: const Text('Mobile')),
+                  if (peer.email != null) ListTile(leading: const Icon(Icons.mail_outline), title: Text(peer.email!), subtitle: const Text('Email')),
+                ],
               ),
             GroupedCard(
               children: [
@@ -143,12 +154,16 @@ class _DirectContactInfoScreenState extends State<DirectContactInfoScreen> {
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: GestureDetector(
-                              onTap: () => m.type == DmType.video
+                              onTap: () => m.media!.secure
+                                  ? context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!))
+                                  : m.type == DmType.video
                                   ? VideoPlayerPage.open(context, m.media!.fullUrl)
                                   : ImageViewerPage.open(context, m.media!.fullUrl),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: m.type == DmType.video
+                                child: m.media!.secure
+                                    ? Container(width: 76, height: 76, color: context.palette.surfaceAlt, child: Icon(Icons.lock, color: context.palette.textSecondary))
+                                    : m.type == DmType.video
                                     ? Container(
                                         width: 76,
                                         color: Colors.black87,

@@ -21,7 +21,8 @@ Future<void> showMessageActions(BuildContext context, ChatController chat, DmMes
   final age = DateTime.now().difference(m.createdAt);
   final canEdit =
       mine && !m.deleted && const [DmType.text, DmType.image, DmType.video].contains(m.type) && age < _editWindow;
-  final canCopy = !m.deleted && m.text.isNotEmpty;
+  // Private / Highly Protected: no copy, no forward.
+  final canCopy = !m.deleted && m.text.isNotEmpty && m.canCopy;
   final myReaction = m.myReaction(me);
 
   final action = await showModalBottomSheet<String>(
@@ -77,7 +78,7 @@ Future<void> showMessageActions(BuildContext context, ChatController chat, DmMes
                 title: const Text('Edit'),
                 onTap: () => Navigator.pop(ctx, 'edit'),
               ),
-            if (!m.deleted)
+            if (!m.deleted && m.canForward)
               ListTile(
                 leading: const Icon(Icons.shortcut),
                 title: const Text('Forward'),

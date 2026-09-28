@@ -67,6 +67,8 @@ class GroupSender {
     if (!context.mounted) return false;
     if (blocked.isContent) {
       context.push(blocked.restrictionRoute);
+    } else if (blocked.code == planRequiredCode) {
+      await showPlanRequired(context, blocked.message);
     } else {
       context.showSnack(blocked.message);
     }

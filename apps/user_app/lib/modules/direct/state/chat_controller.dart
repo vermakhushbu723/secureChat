@@ -273,10 +273,12 @@ class ChatController extends ChangeNotifier {
     String? name,
     DmLocation? location,
     DmContact? contact,
+    String visibility = 'public',
   }) {
     final reply = replyTo;
     replyTo = null;
     return DmMessage(
+      visibility: visibility,
       id: '',
       conversationId: conversationId,
       clientMsgId: newClientMsgId(),
@@ -295,6 +297,14 @@ class ChatController extends ChangeNotifier {
     );
   }
 
+  /// Privacy level picked in the composer (lock icon): public | private | highly_protected.
+  String visibility = 'public';
+
+  void setVisibility(String v) {
+    visibility = v;
+    _notify();
+  }
+
   Future<void> sendText(String raw) async {
     final text = raw.trim();
     if (text.isEmpty) return;
@@ -305,8 +315,8 @@ class ChatController extends ChangeNotifier {
       _notify();
       return editMessage(edit, text);
     }
-    final m = _pending(DmType.text, text: text);
-    await _deliver(m, {'type': 'text', 'text': text});
+    final m = _pending(DmType.text, text: text, visibility: visibility);
+    await _deliver(m, {'type': 'text', 'text': text, 'visibility': visibility});
   }
 
   Future<void> sendLocation(DmLocation location) async {
@@ -321,7 +331,10 @@ class ChatController extends ChangeNotifier {
 
   /// Upload then send. The bubble shows the local preview + progress meanwhile.
   Future<void> sendFile(Uint8List bytes, String name, DmType type, {String caption = '', double? duration}) async {
-    var m = _pending(type, text: caption, bytes: bytes, name: name);
+    // Private / Highly Protected files are uploaded encrypted and open only in the secure viewer.
+    final level = visibility;
+    final secure = level != 'public';
+    var m = _pending(type, text: caption, bytes: bytes, name: name, visibility: level);
     _upsertLocal(m);
     try {
       final media = await DirectRepository.upload(
@@ -329,13 +342,14 @@ class ChatController extends ChangeNotifier {
         name,
         kind: type == DmType.voice ? 'voice' : null,
         duration: duration,
+        secure: secure,
         onProgress: (p) {
           m = m.copyWith(uploadProgress: p);
           _upsertLocal(m);
         },
       );
       m = m.copyWith(media: media, uploadProgress: 1);
-      await _deliver(m, {'type': type.name, 'text': caption, 'media': media.toJson()});
+      await _deliver(m, {'type': type.name, 'text': caption, 'media': media.toJson(), 'visibility': level});
     } on ApiException catch (e) {
       _upsertLocal(m.copyWith(status: DeliveryStatus.failed, error: e.message));
     }
@@ -378,6 +392,7 @@ class ChatController extends ChangeNotifier {
     await _deliver(m, {
       'type': m.type.name,
       'text': m.text,
+      'visibility': m.visibility,
       if (m.media != null) 'media': m.media!.toJson(),
       if (m.location != null) 'location': m.location!.toJson(),
       if (m.contact != null) 'contact': m.contact!.toJson(),

@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import '../data/subscription_repository.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key, required this.planId});
@@ -104,20 +105,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Icon(Icons.verified_user_outlined, size: 16, color: context.palette.textSecondary),
               const SizedBox(width: 6),
-              Text('100% secure payment', style: TextStyle(color: context.palette.textSecondary, fontSize: 12)),
+              Flexible(
+                child: Text(
+                  'Online payment coming soon - the admin confirms payment and activates premium',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: context.palette.textSecondary, fontSize: 12),
+                ),
+              ),
             ],
           ),
         ],
         bottom: PrimaryButton(
-          label: 'Pay ${plan.price}',
+          label: 'Request ${plan.price} plan',
           loading: _paying,
-          onPressed: () async {
-            setState(() => _paying = true);
-            await Future<void>.delayed(const Duration(seconds: 1));
-            if (!context.mounted) return;
-            context.showSnack('Payment successful');
-            context.pushReplacement(AppRoutes.subscriptionStatus);
-          },
+          // Online payment is not connected yet: the plan is sent to the admin as a premium request.
+          onPressed: _paying
+              ? null
+              : () async {
+                  setState(() => _paying = true);
+                  try {
+                    await SubscriptionRepository.request(kind: 'premium', days: plan.durationDays, reason: '${plan.name} plan (${plan.price})');
+                    if (!context.mounted) return;
+                    context.showSnack('Request sent. The admin will activate premium after payment confirmation.');
+                    context.pushReplacement(AppRoutes.trialStatus);
+                  } on ApiException catch (e) {
+                    if (context.mounted) context.showSnack(e.code == 'REQUEST_PENDING' ? 'You already have a request waiting for the admin' : e.message);
+                  } finally {
+                    if (mounted) setState(() => _paying = false);
+                  }
+                },
         ),
       ),
     );

@@ -68,7 +68,12 @@ class _Profile extends StatelessWidget {
             children: [
               InfoRow(label: 'Group', value: m.groupName ?? '', icon: Icons.groups_outlined),
               InfoRow(label: 'Joined', value: m.joinedAt == null ? '-' : formatDayHeader(m.joinedAt!).toLowerCase(), icon: Icons.calendar_today_outlined),
-              const InfoRow(label: 'Mobile / Email / ID', value: 'Hidden', icon: Icons.visibility_off_outlined),
+              if (m.about.isNotEmpty) InfoRow(label: m.accountType == 'business' ? 'Bio' : 'About', value: m.about, icon: Icons.info_outline),
+              if (m.businessAddress != null) InfoRow(label: 'Business address', value: m.businessAddress!, icon: Icons.storefront_outlined),
+              // Shown only when the member turned on "Show mobile number & email".
+              if (m.phone != null) InfoRow(label: 'Mobile', value: m.phone!, icon: Icons.phone_outlined),
+              if (m.email != null) InfoRow(label: 'Email', value: m.email!, icon: Icons.mail_outline),
+              if (m.phone == null && m.email == null) const InfoRow(label: 'Mobile / Email', value: 'Hidden', icon: Icons.visibility_off_outlined),
               if (m.hasLocation)
                 AppTile(
                   icon: Icons.location_on_outlined,

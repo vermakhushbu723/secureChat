@@ -10,6 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../../../core/core.dart';
+import '../../chat/widgets/chat_input_bar.dart' show pickVisibility;
+import '../../groups/data/group_models.dart' show visibilityOf, visibilityValue;
 import '../data/direct_models.dart';
 import '../state/chat_controller.dart';
 
@@ -80,9 +82,23 @@ class _DmComposerState extends State<DmComposer> {
     chat.onComposerChanged(v);
   }
 
+  /// Direct chats need your own trial / premium / extension.
+  bool _planOk() {
+    if (!Session.chatLocked) return true;
+    showPlanRequired(context, 'Your free trial has ended. Upgrade to premium or request an extension to keep chatting.');
+    return false;
+  }
+
+  /// Lock icon: Public / Private / Highly Protected, right in the chat (no extra page).
+  Future<void> _pickPrivacy() async {
+    final v = await pickVisibility(context, visibilityOf(chat.visibility));
+    if (v != null) chat.setVisibility(visibilityValue(v));
+  }
+
   void _send() {
     final text = _text.text;
     if (text.trim().isEmpty) return;
+    if (!_planOk()) return;
     _text.clear();
     setState(() => _hasText = false);
     chat.sendText(text).catchError((Object e) {
@@ -110,6 +126,7 @@ class _DmComposerState extends State<DmComposer> {
 
   // ------------------------------------------------------------ attachments
   Future<void> _openAttachSheet() async {
+    if (!_planOk()) return;
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -198,6 +215,7 @@ class _DmComposerState extends State<DmComposer> {
   }
 
   Future<void> _camera() async {
+    if (!_planOk()) return;
     final XFile? shot;
     try {
       shot = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85, maxWidth: 2048);
@@ -333,6 +351,7 @@ class _DmComposerState extends State<DmComposer> {
 
   // ------------------------------------------------------------ voice notes
   Future<void> _startRecording() async {
+    if (!_planOk()) return;
     try {
       if (!await _recorder.hasPermission()) {
         if (mounted) context.showSnack('Microphone permission is required for voice messages');
@@ -484,6 +503,11 @@ class _DmComposerState extends State<DmComposer> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 IconButton(
+                  tooltip: 'Privacy: ${visibilityOf(chat.visibility).label}',
+                  icon: Icon(visibilityOf(chat.visibility).icon, color: chat.visibility == 'public' ? null : context.colors.primary),
+                  onPressed: editing ? null : _pickPrivacy,
+                ),
+                IconButton(
                   tooltip: 'Emoji',
                   icon: Icon(_showEmoji ? Icons.keyboard_outlined : Icons.emoji_emotions_outlined),
                   onPressed: _toggleEmoji,
@@ -496,8 +520,8 @@ class _DmComposerState extends State<DmComposer> {
                     maxLines: 6,
                     textCapitalization: TextCapitalization.sentences,
                     onChanged: _changed,
-                    decoration: const InputDecoration(
-                      hintText: 'Message',
+                    decoration: InputDecoration(
+                      hintText: chat.visibility == 'public' ? 'Message' : 'Message (${visibilityOf(chat.visibility).label})',
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,

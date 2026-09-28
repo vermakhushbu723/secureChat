@@ -39,6 +39,10 @@ class DmUser {
     this.lastSeenAt,
     this.online = false,
     this.isBlocked = false,
+    this.phone,
+    this.email,
+    this.accountType = 'personal',
+    this.businessAddress,
   });
 
   factory DmUser.fromJson(Map<String, dynamic> j) => DmUser(
@@ -50,6 +54,10 @@ class DmUser {
     lastSeenAt: _date(j['lastSeenAt']),
     online: j['online'] == true,
     isBlocked: j['isBlocked'] == true,
+    phone: j['phone'] as String?,
+    email: j['email'] as String?,
+    accountType: j['accountType'] as String? ?? 'personal',
+    businessAddress: j['businessAddress'] as String?,
   );
 
   final String id;
@@ -60,6 +68,14 @@ class DmUser {
   final DateTime? lastSeenAt;
   final bool online;
   final bool isBlocked;
+
+  /// Only present when the user turned on "Show mobile number & email".
+  final String? phone;
+  final String? email;
+  final String accountType;
+  final String? businessAddress;
+
+  bool get isBusiness => accountType == 'business';
 
   String get initials => initialsOf(name);
 
@@ -72,6 +88,10 @@ class DmUser {
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
     online: online ?? this.online,
     isBlocked: isBlocked ?? this.isBlocked,
+    phone: phone,
+    email: email,
+    accountType: accountType,
+    businessAddress: businessAddress,
   );
 }
 
@@ -85,10 +105,14 @@ class DmMedia {
     this.width,
     this.height,
     this.duration,
+    this.secure = false,
+    this.fileId,
   });
 
   factory DmMedia.fromJson(Map<String, dynamic> j) => DmMedia(
-    url: j['url'] as String,
+    url: j['url'] as String? ?? '',
+    secure: j['secure'] == true,
+    fileId: j['fileId'] as String? ?? j['secureFileId'] as String?,
     thumbUrl: j['thumbUrl'] as String?,
     mimeType: j['mimeType'] as String? ?? 'application/octet-stream',
     name: j['name'] as String?,
@@ -107,10 +131,16 @@ class DmMedia {
   final int? height;
   final double? duration;
 
+  /// Private / Highly Protected: encrypted, no URL, opened in the secure viewer.
+  final bool secure;
+  final String? fileId;
+
   String get fullUrl => ApiConfig.mediaUrl(url);
   String get previewUrl => ApiConfig.mediaUrl(thumbUrl ?? url);
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => secure
+      ? {'secure': true, 'secureFileId': fileId, 'mimeType': mimeType, 'name': ?name, 'size': size, 'duration': ?duration}
+      : {
     'url': url,
     'thumbUrl': ?thumbUrl,
     'mimeType': mimeType,
@@ -202,6 +232,9 @@ class DmMessage {
     this.localName,
     this.uploadProgress,
     this.error,
+    this.visibility = 'public',
+    this.canForward = true,
+    this.canCopy = true,
   });
 
   factory DmMessage.fromJson(Map<String, dynamic> j) => DmMessage(
@@ -226,6 +259,9 @@ class DmMessage {
     starred: j['starred'] == true,
     status: statusOf(j['status'] as String?),
     createdAt: _date(j['createdAt']) ?? DateTime.now(),
+    visibility: j['visibility'] as String? ?? 'public',
+    canForward: (j['permissions'] as Map?)?['canForward'] != false,
+    canCopy: (j['permissions'] as Map?)?['canCopy'] != false,
   );
 
   /// Server id; empty while the message is still being sent.
@@ -255,6 +291,12 @@ class DmMessage {
   final double? uploadProgress;
   final String? error;
 
+  /// public | private | highly_protected (chosen by the sender).
+  final String visibility;
+  final bool canForward;
+  final bool canCopy;
+
+  bool get isProtected => visibility != 'public';
   bool get isPending => id.isEmpty;
   bool get isMine => senderId == AuthService.instance.userId;
   bool get isMedia =>
@@ -303,6 +345,9 @@ class DmMessage {
     localName: localName,
     uploadProgress: uploadProgress ?? this.uploadProgress,
     error: error,
+    visibility: visibility,
+    canForward: canForward,
+    canCopy: canCopy,
   );
 }
 

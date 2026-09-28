@@ -71,7 +71,7 @@ class _GroupChatState extends State<_GroupChat> with WidgetsBindingObserver {
 
   Future<void> _openViewOnce(GroupMessage m) async {
     if (m.media?.fileId != null) {
-      context.push(AppRoutes.protectedContentOf(m.media!.fileId!));
+      context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!));
       return;
     }
     final ok = await context.confirm(

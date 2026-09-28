@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import '../data/subscription_repository.dart';
 
 /// Reason -> Extension Required -> Submit -> Admin approval.
 class ExtensionRequestScreen extends StatefulWidget {
@@ -12,6 +13,30 @@ class _ExtensionRequestScreenState extends State<ExtensionRequestScreen> {
   String _required = '7 days';
   String _reason = 'Still evaluating for my group';
   bool _submitted = false;
+  bool _sending = false;
+  final _message = TextEditingController();
+
+  @override
+  void dispose() {
+    _message.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _sending = true);
+    try {
+      await SubscriptionRepository.request(
+        kind: _required == 'Premium' ? 'premium' : 'extension',
+        days: _required == '30 days' || _required == 'Premium' ? 30 : 7,
+        reason: [_reason, if (_message.text.trim().isNotEmpty) _message.text.trim()].join(' - '),
+      );
+      if (mounted) setState(() => _submitted = true);
+    } on ApiException catch (e) {
+      if (mounted) context.showSnack(e.code == 'REQUEST_PENDING' ? 'You already have a request waiting for the admin' : e.message);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   static const _reasons = [
     'Still evaluating for my group',
@@ -36,7 +61,7 @@ class _ExtensionRequestScreenState extends State<ExtensionRequestScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Trial expired on ${MockData.currentUser.trialEnd}. The admin reviews every request.',
+            'The admin reviews every request. You will get access as soon as it is approved.',
             textAlign: TextAlign.center,
             style: TextStyle(color: context.palette.textSecondary),
           ),
@@ -62,18 +87,9 @@ class _ExtensionRequestScreenState extends State<ExtensionRequestScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const AppTextField(label: 'Message to admin (optional)', hint: 'Tell us why you need more time', maxLines: 3),
-          const SectionHeader('Previous requests', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.history),
-              title: Text('7 days extension'),
-              subtitle: Text('Requested 10 Aug 2026'),
-              trailing: StatusChip('Approved'),
-            ),
-          ),
+          AppTextField(controller: _message, label: 'Message to admin (optional)', hint: 'Tell us why you need more time', maxLines: 3),
         ],
-        bottom: PrimaryButton(label: 'Submit Request', onPressed: () => setState(() => _submitted = true)),
+        bottom: PrimaryButton(label: 'Submit Request', loading: _sending, onPressed: _sending ? null : _submit),
       ),
     );
   }

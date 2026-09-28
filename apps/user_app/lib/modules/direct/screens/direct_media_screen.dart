@@ -83,6 +83,13 @@ class _MediaTabState extends State<_MediaTab> with AutomaticKeepAliveClientMixin
             itemBuilder: (_, i) {
               final m = items[i];
               final video = m.type == DmType.video;
+              // Protected photo / video: lock tile, opens in the secure viewer.
+              if (m.media!.secure) {
+                return GestureDetector(
+                  onTap: () => context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!)),
+                  child: Container(color: context.palette.surfaceAlt, child: Icon(Icons.lock, color: context.palette.textSecondary)),
+                );
+              }
               return GestureDetector(
                 onTap: () => video
                     ? VideoPlayerPage.open(context, m.media!.fullUrl)
@@ -100,17 +107,20 @@ class _MediaTabState extends State<_MediaTab> with AutomaticKeepAliveClientMixin
             children: [
               for (final m in items)
                 ListTile(
-                  leading: const Icon(Icons.insert_drive_file_outlined, size: 32),
+                  leading: Icon(m.media?.secure == true ? Icons.lock : Icons.insert_drive_file_outlined, size: 32),
                   title: Text(m.media?.name ?? 'File'),
-                  subtitle: Text('${formatBytes(m.media?.size ?? 0)}  •  ${formatListTime(m.createdAt)}'),
-                  onTap: () => openExternal(context, m.media!.fullUrl),
+                  subtitle: Text('${formatBytes(m.media?.size ?? 0)}  •  ${formatListTime(m.createdAt)}${m.media?.secure == true ? '  •  Secure' : ''}'),
+                  onTap: () => m.media?.secure == true
+                      ? context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!))
+                      : openExternal(context, m.media!.fullUrl),
                 ),
             ],
           ),
           'audio' => ListView(
             padding: const EdgeInsets.all(12),
             children: [
-              for (final m in items)
+              // Protected audio has no URL; it opens from the chat in the secure viewer.
+              for (final m in items.where((m) => m.media?.secure != true))
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(8),
