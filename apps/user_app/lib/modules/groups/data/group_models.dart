@@ -593,6 +593,8 @@ class InvitePreview {
     this.messageMode = 'user_select',
     this.requireApproval = false,
     this.membership,
+    this.rules = '',
+    this.permissions = const [],
   });
 
   factory InvitePreview.fromJson(Map<String, dynamic> j) {
@@ -612,6 +614,11 @@ class InvitePreview {
       messageMode: g['messageMode'] as String? ?? 'user_select',
       requireApproval: j['requireApproval'] == true,
       membership: j['membership'] as String?,
+      rules: g['rules'] as String? ?? '',
+      permissions: [
+        for (final x in (j['permissions'] as List? ?? const []))
+          (key: '${(x as Map)['key']}', title: '${x['title']}', detail: '${x['detail'] ?? ''}'),
+      ],
     );
   }
 
@@ -629,6 +636,10 @@ class InvitePreview {
   final String messageMode;
   final bool requireApproval;
   final String? membership;
+  final String rules;
+
+  /// Group rules / permissions the member accepts before joining.
+  final List<({String key, String title, String detail})> permissions;
 
   String get initials => groupInitials(name);
   bool get usable => state == 'Active';

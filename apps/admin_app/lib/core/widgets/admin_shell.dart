@@ -73,7 +73,7 @@ class AdminShell extends StatelessWidget {
         title: Row(
           children: [
             if (wide) ...[
-              const AppAvatar(icon: Icons.admin_panel_settings, inverted: true, size: 36),
+              const AppLogo(size: 36),
               const SizedBox(width: 12),
             ],
             const Flexible(child: Text('${AppStrings.appName} Admin', overflow: TextOverflow.ellipsis)),
@@ -139,7 +139,7 @@ class _Sidebar extends StatelessWidget {
         children: [
           if (closeOnTap)
             const ListTile(
-              leading: AppAvatar(icon: Icons.admin_panel_settings, inverted: true, size: 40),
+              leading: AppLogo(size: 40),
               title: Text(AppStrings.adminPanel, style: TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(AppStrings.appName),
             ),

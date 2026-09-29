@@ -9,32 +9,70 @@ Future<void> openExternal(BuildContext context, String url) async {
 }
 
 /// Full screen, zoomable image.
-class ImageViewerPage extends StatelessWidget {
-  const ImageViewerPage({super.key, required this.url, this.title});
+class ImageViewerPage extends StatefulWidget {
+  const ImageViewerPage({super.key, required this.url, this.title, this.allowDownload = true, this.allowScreenshot = true});
 
   final String url;
   final String? title;
 
-  static Future<void> open(BuildContext context, String url, {String? title}) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => ImageViewerPage(url: url, title: title),
+  /// Sender's choice on public photos ("Allow saving" / "Allow screenshots").
+  final bool allowDownload;
+  final bool allowScreenshot;
+
+  /// Opens as an overlay on top of the chat (no separate page).
+  static Future<void> open(BuildContext context, String url, {String? title, bool allowDownload = true, bool allowScreenshot = true}) => showDialog<void>(
+    context: context,
+    useSafeArea: false,
+    barrierColor: Colors.black,
+    builder: (_) => Dialog.fullscreen(
+      backgroundColor: Colors.black,
+      child: ImageViewerPage(url: url, title: title, allowDownload: allowDownload, allowScreenshot: allowScreenshot),
     ),
   );
 
   @override
+  State<ImageViewerPage> createState() => _ImageViewerPageState();
+}
+
+class _ImageViewerPageState extends State<ImageViewerPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.allowScreenshot) ScreenGuard.protect();
+  }
+
+  @override
+  void dispose() {
+    if (!widget.allowScreenshot) ScreenGuard.release();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final url = widget.url;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(title ?? 'Photo'),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actionsIconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(icon: const Icon(Icons.close), tooltip: 'Close', onPressed: () => Navigator.of(context).pop()),
+        title: Text(widget.title ?? 'Photo'),
         actions: [
-          IconButton(
-            tooltip: 'Open / download',
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () => openExternal(context, url),
-          ),
+          if (widget.allowDownload)
+            IconButton(
+              tooltip: 'Open / download',
+              icon: const Icon(Icons.download_outlined),
+              onPressed: () => openExternal(context, url),
+            )
+          else
+            IconButton(
+              tooltip: 'Saving turned off by the sender',
+              icon: const Icon(Icons.file_download_off_outlined),
+              onPressed: () => context.showSnack('The sender turned off saving for this photo'),
+            ),
         ],
       ),
       body: Center(
@@ -98,6 +136,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actionsIconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Video'),
         actions: [
           IconButton(

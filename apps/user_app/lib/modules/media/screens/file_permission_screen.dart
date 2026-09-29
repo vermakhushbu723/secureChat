@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import 'secure_file_viewer_screen.dart' show showSecureFile;
 import '../../direct/data/direct_models.dart';
 import '../../groups/data/group_models.dart';
 import '../../groups/data/group_repository.dart';
@@ -89,7 +90,7 @@ class _EditorState extends State<_Editor> {
               subtitle: Text('${formatBytes(f.size)}  |  ${f.visibility.label} (${f.visibility.levelLabel})  |  ${f.groupName}'),
               trailing: f.revoked
                   ? const StatusChip('Revoked', tone: Tone.danger)
-                  : IconButton(icon: const Icon(Icons.visibility_outlined), tooltip: 'Open', onPressed: () => context.push(AppRoutes.secureFileViewerOf(f.fileId))),
+                  : IconButton(icon: const Icon(Icons.visibility_outlined), tooltip: 'Open', onPressed: () => showSecureFile(context, f.fileId)),
             ),
           ),
           if (!f.canManage) ...[

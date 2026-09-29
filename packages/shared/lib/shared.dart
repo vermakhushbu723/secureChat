@@ -13,6 +13,7 @@ export 'src/core/utils/content_filter.dart';
 export 'src/core/utils/ui_helpers.dart';
 export 'src/core/widgets/app_avatar.dart';
 export 'src/core/widgets/app_button.dart';
+export 'src/core/widgets/app_logo.dart';
 export 'src/core/widgets/app_text_field.dart';
 export 'src/core/widgets/app_tiles.dart';
 export 'src/core/widgets/chain_tree.dart';

@@ -18,6 +18,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Brand logo (apps/logo.png): square for avatars / icons, wide for splash & welcome.
+  assets:
+    - assets/logo.png
+    - assets/logo_wide.png
   # Inter 4.1 (SIL OFL, fonts/Inter-OFL-LICENSE.txt), used via AppTheme. Subset without
   # U+2600-27BF / U+2B00-2BFF so emoji like ❤ fall back to the colour emoji font.
   fonts:

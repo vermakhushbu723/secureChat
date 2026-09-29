@@ -31,6 +31,7 @@ class TrialStatusScreen extends StatelessWidget {
       'premium' => 'Premium',
       'extended' => 'Extended by admin',
       'trial' => 'Free trial',
+      'unclaimed' => 'Free trial ready',
       _ => 'Trial ended',
     };
     final color = plan.locked ? p.danger : AppColors.primary;
@@ -72,7 +73,9 @@ class TrialStatusScreen extends StatelessWidget {
           Text(title, textAlign: TextAlign.center, style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text(
-            plan.locked
+            plan.access == 'unclaimed'
+                ? 'Claim your ${plan.trialDays} day free trial to start chatting. No payment needed.'
+                : plan.locked
                 ? 'You can still read messages. To send messages and open protected files, upgrade or request an extension. '
                       'In premium groups the creator can let you reply without your own plan.'
                 : '${plan.access == 'trial' ? 'Trial ends' : 'Valid until'} ${plan.until == null ? '-' : formatListTime(plan.until)}',
@@ -112,6 +115,14 @@ class TrialStatusScreen extends StatelessWidget {
         ],
         bottom: plan.access == 'premium'
             ? null
+            : plan.access == 'unclaimed'
+            ? PrimaryButton(
+                label: 'Claim free trial',
+                icon: Icons.card_giftcard,
+                onPressed: () async {
+                  if (await showTrialClaim(context)) await reload();
+                },
+              )
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -27,7 +27,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Center(child: FeatureIcon(Icons.admin_panel_settings, size: 72)),
+                    const Center(child: AppLogo(size: 96)),
                     const SizedBox(height: 16),
                     Text(
                       '${AppStrings.appName} Admin',

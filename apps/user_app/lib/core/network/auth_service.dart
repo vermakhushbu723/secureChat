@@ -116,8 +116,10 @@ class PlanStatus {
     until: DateTime.tryParse(j?['until'] as String? ?? '')?.toLocal(),
   );
 
-  /// trial | premium | extended | locked
+  /// trial | premium | extended | locked | unclaimed (new account, trial not claimed yet)
   final String access;
+
+  bool get canClaimTrial => access == 'unclaimed';
   final int daysLeft;
   final DateTime? until;
 
@@ -196,6 +198,24 @@ class AuthService {
   Future<({String? devCode, String sentTo})> requestOtp(String identifier) async {
     final data = await _api.post('/auth/otp/request', body: {'identifier': identifier}) as Map;
     return (devCode: data['devCode'] as String?, sentTo: data['sentTo'] as String? ?? identifier);
+  }
+
+  /// Login step 1+2: mobile number and email ID -> the code is sent to the email.
+  Future<({String? devCode, String sentTo, bool emailed})> requestOtpPair(String phone, String email) async {
+    final data = await _api.post('/auth/otp/request', body: {'phone': phone, 'email': email}) as Map;
+    return (devCode: data['devCode'] as String?, sentTo: data['sentTo'] as String? ?? email, emailed: data['emailed'] == true);
+  }
+
+  Future<({AuthUser user, bool isNew})> verifyOtpPair(String phone, String email, String code) async {
+    final data =
+        await _api.post('/auth/otp/verify', body: {'phone': phone, 'email': email, 'code': code}) as Map<String, dynamic>;
+    return (user: await _save(data), isNew: data['isNew'] == true);
+  }
+
+  /// "Claim free trial" popup after signup: starts the 7 day trial.
+  Future<AuthUser> claimTrial() async {
+    await _api.post('/subscription/claim-trial');
+    return reloadMe();
   }
 
   Future<({AuthUser user, bool isNew})> verifyOtp(String identifier, String code) async {
@@ -289,7 +309,9 @@ class AuthService {
   void _setUser(AuthUser? me) {
     user.value = me;
     if (me != null) {
-      Session.access.value = AccessType.values.firstWhere((a) => a.name == me.subscription.access, orElse: () => AccessType.trial);
+      // Not claimed yet = no access until the user claims the free trial.
+      final plan = me.subscription.canClaimTrial ? 'locked' : me.subscription.access;
+      Session.access.value = AccessType.values.firstWhere((a) => a.name == plan, orElse: () => AccessType.trial);
     }
   }
 

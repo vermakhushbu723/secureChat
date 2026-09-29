@@ -42,7 +42,7 @@ class PlanDetails {
   final DateTime? trialEndsAt;
   final List<PlanRequest> requests;
 
-  bool get locked => access == 'locked';
+  bool get locked => access == 'locked' || access == 'unclaimed';
   PlanRequest? get pending => requests.where((r) => r.status == 'pending').firstOrNull;
 }
 

@@ -14,7 +14,7 @@ Future<void> main() async {
   await AuthService.instance.restore();
   // Default privacy level / permissions chosen in Visibility Selection.
   await MessageDraft.loadDefault();
-  // Dark (WhatsApp dark) unless the user picked another theme.
+  // Light unless the user picked another theme (Settings -> Chats -> Theme).
   await ThemePrefs.load();
   runApp(const UserApp());
 }

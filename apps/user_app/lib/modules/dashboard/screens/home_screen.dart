@@ -9,6 +9,7 @@ import '../../direct/state/conversations_controller.dart';
 import '../../groups/data/group_models.dart';
 import '../../groups/state/groups_controller.dart';
 import '../../groups/widgets/group_tile.dart';
+import '../../groups/widgets/join_group_sheet.dart';
 
 /// Chats tab (WhatsApp style): groups and 1-to-1 chats in one list, newest
 /// first, pinned on top. Search on top and filters All / Unread / Groups / Personal.
@@ -198,7 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(icon: const Icon(Icons.group_add_outlined), tooltip: 'New group', onPressed: () => context.push(AppRoutes.createGroup)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            onSelected: (r) => r == AppRoutes.settings ? context.openDetail(r) : context.push(r),
+            onSelected: (r) => r == AppRoutes.settings
+                ? context.openDetail(r)
+                : r == AppRoutes.joinGroup
+                ? askInviteLink(context)
+                : context.push(r),
             itemBuilder: (_) => const [
               PopupMenuItem(value: AppRoutes.createGroup, child: Text('New group')),
               PopupMenuItem(value: AppRoutes.newDirectChat, child: Text('New chat')),
@@ -417,7 +422,8 @@ class _SheetTile extends StatelessWidget {
       subtitle: Text(subtitle),
       onTap: () {
         Navigator.pop(context);
-        context.push(route);
+        // Join with link opens the join popup here (no separate page).
+        route == AppRoutes.joinGroup ? askInviteLink(context) : context.push(route);
       },
     );
   }

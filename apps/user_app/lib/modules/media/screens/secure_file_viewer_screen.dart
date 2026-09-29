@@ -12,10 +12,21 @@ import '../../groups/data/group_repository.dart';
 /// Secure viewer for Private / Highly Protected files.
 /// Secure File Token -> Authenticated App -> Permission Check -> Decrypt/Stream -> Viewer.
 /// No download, save, share, open-with, copy or print. Dynamic watermark on top.
+/// Opens a protected file on top of the current chat (no separate page).
+Future<void> showSecureFile(BuildContext context, String fileId) => showDialog<void>(
+  context: context,
+  useSafeArea: false,
+  barrierColor: Colors.black87,
+  builder: (_) => Dialog.fullscreen(child: SecureFileViewerScreen(fileId: fileId, inDialog: true)),
+);
+
 class SecureFileViewerScreen extends StatelessWidget {
-  const SecureFileViewerScreen({super.key, this.fileId});
+  const SecureFileViewerScreen({super.key, this.fileId, this.inDialog = false});
 
   final String? fileId;
+
+  /// Shown as an overlay over the chat: close button, and links leave the overlay first.
+  final bool inDialog;
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +34,15 @@ class SecureFileViewerScreen extends StatelessWidget {
     if (id == null) {
       return const Scaffold(body: EmptyState(icon: Icons.enhanced_encryption_outlined, title: 'No file', message: 'Open a protected file from a chat.'));
     }
-    return LoginGate(title: 'Secure Viewer', child: _SecureViewer(fileId: id));
+    return LoginGate(title: 'Secure Viewer', child: _SecureViewer(fileId: id, inDialog: inDialog));
   }
 }
 
 class _SecureViewer extends StatefulWidget {
-  const _SecureViewer({required this.fileId});
+  const _SecureViewer({required this.fileId, this.inDialog = false});
 
   final String fileId;
+  final bool inDialog;
 
   @override
   State<_SecureViewer> createState() => _SecureViewerState();
@@ -56,6 +68,20 @@ class _SecureViewerState extends State<_SecureViewer> {
     _timer?.cancel();
     ScreenGuard.release();
     super.dispose();
+  }
+
+  /// "Today 6:01 PM" -> "6:01 PM", older -> "Mon, 6:01 PM".
+  String _when(DateTime t) {
+    final day = formatListTime(t);
+    final clock = formatClock(t);
+    return day == clock ? clock : '$day, $clock';
+  }
+
+  /// From the overlay, close it before opening another page.
+  void _leaveTo(String route) {
+    final router = GoRouter.of(context);
+    if (widget.inDialog) Navigator.of(context).pop();
+    router.push(route);
   }
 
   Future<void> _open() async {
@@ -102,6 +128,7 @@ class _SecureViewerState extends State<_SecureViewer> {
     return Scaffold(
       backgroundColor: context.palette.surfaceAlt,
       appBar: AppBar(
+        leading: widget.inDialog ? IconButton(icon: const Icon(Icons.close), tooltip: 'Close', onPressed: () => Navigator.of(context).pop()) : null,
         // Only what the viewer needs: sender, date & time, file name, description, "Secure File".
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,11 +139,11 @@ class _SecureViewerState extends State<_SecureViewer> {
               overflow: TextOverflow.ellipsis,
             ),
             if (t?.sentAt != null)
-              Text('${formatListTime(t!.sentAt)}, ${formatClock(t.sentAt!)}', style: TextStyle(fontSize: 12, color: context.palette.textSecondary)),
+              Text(_when(t!.sentAt!), style: TextStyle(fontSize: 12, color: context.palette.textSecondary)),
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.info_outline), tooltip: 'File details', onPressed: () => context.push(AppRoutes.filePermissionOf(widget.fileId))),
+          IconButton(icon: const Icon(Icons.info_outline), tooltip: 'File details', onPressed: () => _leaveTo(AppRoutes.filePermissionOf(widget.fileId))),
         ],
       ),
       body: Column(
@@ -177,7 +204,7 @@ class _SecureViewerState extends State<_SecureViewer> {
         },
         message: e.message,
         action: e.code == 'SUBSCRIPTION_REQUIRED'
-            ? FilledButton.icon(onPressed: () => context.push(AppRoutes.trialStatus), icon: const Icon(Icons.workspace_premium_outlined), label: const Text('Upgrade'))
+            ? FilledButton.icon(onPressed: () => _leaveTo(AppRoutes.trialStatus), icon: const Icon(Icons.workspace_premium_outlined), label: const Text('Upgrade'))
             : TextButton.icon(onPressed: _open, icon: const Icon(Icons.refresh), label: const Text('Try again')),
       );
     }
@@ -218,7 +245,7 @@ class _SecureViewerState extends State<_SecureViewer> {
     return WatermarkOverlay(
       name: t.watermarkName,
       userId: t.maskedId,
-      timestamp: '${formatListTime(now)}  ${formatClock(now)}',
+      timestamp: _when(now),
       child: content,
     );
   }

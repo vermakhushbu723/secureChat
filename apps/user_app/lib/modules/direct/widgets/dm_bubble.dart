@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../../../core/core.dart';
+import '../../media/screens/secure_file_viewer_screen.dart' show showSecureFile;
 import '../data/direct_models.dart';
 import 'linkified_text.dart';
 import 'media_viewers.dart';
@@ -19,6 +20,7 @@ class DmBubble extends StatelessWidget {
     this.onLongPress,
     this.onRetry,
     this.onReactionTap,
+    this.onOpenViewOnce,
     this.highlight = false,
   });
 
@@ -27,6 +29,9 @@ class DmBubble extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onRetry;
   final VoidCallback? onReactionTap;
+
+  /// Receiver taps a view once placeholder.
+  final VoidCallback? onOpenViewOnce;
   final bool highlight;
 
   @override
@@ -63,7 +68,7 @@ class DmBubble extends StatelessWidget {
             children: [
               if (m.forwarded && !m.deleted) _Forwarded(count: m.forwardCount, color: sub),
               if (m.replyTo != null && !m.deleted) _ReplyQuote(reply: m.replyTo!, peerName: peerName, fg: fg, sub: sub),
-              _Content(message: m, fg: fg, sub: sub),
+              _Content(message: m, fg: fg, sub: sub, onOpenViewOnce: onOpenViewOnce),
               const SizedBox(height: 2),
               _Footer(message: m, sub: sub, onRetry: onRetry, onMenu: m.isPending ? null : onLongPress),
             ],
@@ -161,11 +166,21 @@ class _ReplyQuote extends StatelessWidget {
 }
 
 class _Content extends StatelessWidget {
-  const _Content({required this.message, required this.fg, required this.sub});
+  const _Content({required this.message, required this.fg, required this.sub, this.onOpenViewOnce});
 
   final DmMessage message;
   final Color fg;
   final Color sub;
+  final VoidCallback? onOpenViewOnce;
+
+  Widget _italic(IconData icon, String text) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 16, color: sub),
+      const SizedBox(width: 6),
+      Flexible(child: Text(text, style: TextStyle(fontStyle: FontStyle.italic, color: sub))),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +198,24 @@ class _Content extends StatelessWidget {
             ),
           ),
         ],
+      );
+    }
+    if (m.expired) return _italic(Icons.timer_off_outlined, 'This message expired');
+    if (m.withheld) {
+      if (m.withheldReason == 'opened') return _italic(Icons.visibility_off_outlined, 'Opened');
+      return InkWell(
+        onTap: onOpenViewOnce,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.looks_one_outlined, color: fg),
+              const SizedBox(width: 8),
+              Text(m.isMedia ? 'View once photo - tap to open' : 'View once message - tap to view', style: TextStyle(color: fg, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       );
     }
     final caption = m.text.isEmpty
@@ -305,7 +338,7 @@ class _ImageThumb extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: media == null ? null : () => ImageViewerPage.open(context, media.fullUrl),
+      onTap: media == null ? null : () => ImageViewerPage.open(context, media.fullUrl, allowDownload: m.allowDownload, allowScreenshot: m.allowScreenshot),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
@@ -532,6 +565,14 @@ class _Footer extends StatelessWidget {
           ),
           const SizedBox(width: 5),
         ],
+        if (m.viewOnce && !m.deleted && !m.expired) ...[
+          Icon(Icons.looks_one_outlined, size: 13, color: sub),
+          const SizedBox(width: 3),
+        ],
+        if (m.expiresAt != null && !m.expired && !m.deleted) ...[
+          Icon(Icons.timer_outlined, size: 12, color: sub),
+          const SizedBox(width: 3),
+        ],
         if (m.isProtected && !m.deleted) ...[
           Icon(m.visibility == 'highly_protected' ? Icons.gpp_good_outlined : Icons.lock_outline, size: 12, color: sub),
           const SizedBox(width: 3),
@@ -641,7 +682,7 @@ class _SecureTile extends StatelessWidget {
     final name = media?.name ?? m.localName ?? 'Protected file';
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: uploading || media.fileId == null ? null : () => context.push(AppRoutes.secureFileViewerOf(media.fileId!)),
+      onTap: uploading || media.fileId == null ? null : () => showSecureFile(context, media.fileId!),
       child: Container(
         width: 250,
         padding: const EdgeInsets.all(10),

@@ -24,6 +24,9 @@ class DirectRepository {
 
   static Future<DmUser> getUser(String id) async => DmUser.fromJson(_map(await _api.get('/users/$id')));
 
+  /// View once: reveals the message for the receiver (only once).
+  static Future<DmMessage> openViewOnce(String messageId) async => DmMessage.fromJson(_map(await _api.post('/messages/$messageId/open')));
+
   static Future<void> block(String userId) => _api.post('/users/$userId/block');
 
   static Future<void> unblock(String userId) => _api.delete('/users/$userId/block');

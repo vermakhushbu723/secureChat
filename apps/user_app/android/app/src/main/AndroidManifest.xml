@@ -29,13 +29,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Invite links (https://securechat.candledust.online/group/XXX-XXXXXX) open in the app.
+            <!-- Invite links (https://prosecurely.online/group/XXX-XXXXXX) open in the app.
                  Verified by /.well-known/assetlinks.json on the same domain. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="securechat.candledust.online" android:pathPrefix="/group/"/>
+                <data android:scheme="https" android:host="prosecurely.online" android:pathPrefix="/group/"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

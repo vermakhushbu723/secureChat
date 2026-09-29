@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
-    "theme_color": "#111B21",
+    "theme_color": "#6C2BF2",
     "description": "Group chat only. Protected messages.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,

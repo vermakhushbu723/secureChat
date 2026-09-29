@@ -235,6 +235,14 @@ class DmMessage {
     this.visibility = 'public',
     this.canForward = true,
     this.canCopy = true,
+    this.allowDownload = true,
+    this.allowScreenshot = true,
+    this.expiresAt,
+    this.viewOnce = false,
+    this.opened = false,
+    this.withheld = false,
+    this.withheldReason,
+    this.expired = false,
   });
 
   factory DmMessage.fromJson(Map<String, dynamic> j) => DmMessage(
@@ -262,6 +270,14 @@ class DmMessage {
     visibility: j['visibility'] as String? ?? 'public',
     canForward: (j['permissions'] as Map?)?['canForward'] != false,
     canCopy: (j['permissions'] as Map?)?['canCopy'] != false,
+    allowDownload: (j['permissions'] as Map?)?['allowDownload'] != false,
+    allowScreenshot: (j['permissions'] as Map?)?['allowScreenshot'] != false,
+    expiresAt: _date((j['permissions'] as Map?)?['expiresAt']),
+    viewOnce: j['viewOnce'] == true,
+    opened: j['opened'] == true,
+    withheld: j['withheld'] == true,
+    withheldReason: j['withheldReason'] as String?,
+    expired: j['expired'] == true,
   );
 
   /// Server id; empty while the message is still being sent.
@@ -295,6 +311,21 @@ class DmMessage {
   final String visibility;
   final bool canForward;
   final bool canCopy;
+
+  /// Public messages: the sender's "Allow saving" / "Allow screenshots" choice.
+  final bool allowDownload;
+  final bool allowScreenshot;
+
+  /// Disappearing message (1h / 24h / 7d).
+  final DateTime? expiresAt;
+
+  /// View once: [withheld] = the receiver still sees the "tap to open" placeholder,
+  /// [withheldReason] 'opened' once they viewed it.
+  final bool viewOnce;
+  final bool opened;
+  final bool withheld;
+  final String? withheldReason;
+  final bool expired;
 
   bool get isProtected => visibility != 'public';
   bool get isPending => id.isEmpty;
@@ -348,6 +379,33 @@ class DmMessage {
     visibility: visibility,
     canForward: canForward,
     canCopy: canCopy,
+    allowDownload: allowDownload,
+    allowScreenshot: allowScreenshot,
+    expiresAt: expiresAt,
+    viewOnce: viewOnce,
+    opened: opened,
+    withheld: withheld,
+    withheldReason: withheldReason,
+    expired: expired,
+  );
+
+  /// After the receiver opened a view once message: placeholder "Opened".
+  DmMessage markOpened() => DmMessage(
+    id: id,
+    conversationId: conversationId,
+    clientMsgId: clientMsgId,
+    senderId: senderId,
+    recipientId: recipientId,
+    type: type,
+    createdAt: createdAt,
+    status: status,
+    visibility: visibility,
+    viewOnce: true,
+    opened: true,
+    withheld: true,
+    withheldReason: 'opened',
+    canForward: false,
+    canCopy: false,
   );
 }
 

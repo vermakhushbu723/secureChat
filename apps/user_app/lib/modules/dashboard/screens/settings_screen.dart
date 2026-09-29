@@ -2,7 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/core.dart';
 
-/// Saved theme choice (dark by default, like WhatsApp dark).
+/// Saved theme choice (light by default; dark / system when the user picks it).
 class ThemePrefs {
   ThemePrefs._();
 
@@ -10,7 +10,7 @@ class ThemePrefs {
 
   static Future<void> load() async {
     final saved = (await SharedPreferences.getInstance()).getString(_key);
-    ThemeController.setMode(ThemeMode.values.firstWhere((m) => m.name == saved, orElse: () => ThemeMode.dark));
+    ThemeController.setMode(ThemeMode.values.firstWhere((m) => m.name == saved, orElse: () => ThemeMode.light));
   }
 
   static Future<void> save(ThemeMode mode) async {
@@ -185,7 +185,7 @@ class _BodyState extends State<_Body> {
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('App info'),
-          subtitle: Text('${AppStrings.appName} for ${me.isBusiness ? 'Business' : 'Personal'} use', style: TextStyle(color: p.textSecondary)),
+          subtitle: Text('Version $appVersion  -  ${me.isBusiness ? 'Business' : 'Personal'} account', style: TextStyle(color: p.textSecondary)),
         ),
       ],
     );

@@ -12,6 +12,7 @@ import 'package:record/record.dart';
 import '../../../core/core.dart';
 import '../../chat/widgets/chat_input_bar.dart' show pickVisibility;
 import '../../groups/data/group_models.dart' show visibilityOf, visibilityValue;
+import '../../secure_message/state/message_draft.dart';
 import '../data/direct_models.dart';
 import '../state/chat_controller.dart';
 
@@ -449,6 +450,30 @@ class _DmComposerState extends State<DmComposer> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (chat.replyTo != null || chat.editing != null) _ContextBar(chat: chat, onClose: _closeContext),
+            // One-off options chosen in the privacy sheet (same as group chats).
+            ListenableBuilder(
+              listenable: MessageDraft.instance,
+              builder: (context, _) {
+                final d = MessageDraft.instance;
+                if (d.expiry == 'never' && !d.silent) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune, size: 14, color: context.palette.textSecondary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          [if (d.expiry == 'view_once') 'View once' else if (d.expiry != 'never') 'Disappears: ${d.expiryLabel}', if (d.silent) 'Silent'].join('  |  '),
+                          style: TextStyle(fontSize: 12, color: context.palette.textSecondary),
+                        ),
+                      ),
+                      InkWell(onTap: () => d.update(expiry: 'never', silent: false), child: Icon(Icons.close, size: 16, color: context.palette.textSecondary)),
+                    ],
+                  ),
+                );
+              },
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: _recording ? _recordingRow(context) : _inputRow(context),

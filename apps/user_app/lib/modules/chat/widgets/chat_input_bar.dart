@@ -1,62 +1,204 @@
 import '../../../core/core.dart';
+import '../../secure_message/state/message_draft.dart';
 
-/// Opens a sheet to choose Public / Private / Highly Protected.
-Future<MessageVisibility?> pickVisibility(BuildContext context, MessageVisibility current) {
+/// Opens the privacy sheet: Public / Private / Highly Protected in plain words, plus the
+/// options for the next message (disappearing, view once, saving, screenshots, silent).
+/// Used by group and 1-to-1 chats. Options are kept in [MessageDraft].
+Future<MessageVisibility?> pickVisibility(BuildContext context, MessageVisibility current, {bool allowChange = true}) {
   return showModalBottomSheet<MessageVisibility>(
     context: context,
     isScrollControlled: true,
-    builder: (ctx) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Select message privacy', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-            const SizedBox(height: 12),
-            for (final v in MessageVisibility.values)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => Navigator.pop(ctx, v),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: v == current ? ctx.colors.primary : ctx.palette.divider,
-                        width: v == current ? 2 : 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(v.icon),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                '${v.label}  (${v.levelLabel})',
-                                style: const TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            Icon(v == current ? Icons.radio_button_checked : Icons.radio_button_off),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        SecurityRulesList(visibility: v),
-                      ],
-                    ),
-                  ),
-                ),
+    builder: (ctx) => _PrivacySheet(current: current, allowChange: allowChange),
+  );
+}
+
+class _PrivacySheet extends StatefulWidget {
+  const _PrivacySheet({required this.current, required this.allowChange});
+
+  final MessageVisibility current;
+  final bool allowChange;
+
+  @override
+  State<_PrivacySheet> createState() => _PrivacySheetState();
+}
+
+class _PrivacySheetState extends State<_PrivacySheet> {
+  late MessageVisibility _level = widget.current;
+  final _draft = MessageDraft.instance;
+
+  static const _levels = {
+    MessageVisibility.public: (
+      'Normal message',
+      'The other person can see it, save it, forward it and copy it.',
+      ['See', 'Save', 'Forward', 'Copy', 'Screenshot'],
+      <String>[],
+    ),
+    MessageVisibility.private: (
+      'Only for this chat',
+      'They can see it, but cannot save, forward, copy or screenshot it.',
+      ['See'],
+      ['Save', 'Forward', 'Copy', 'Screenshot'],
+    ),
+    MessageVisibility.highlyProtected: (
+      'Most secure',
+      'Opens only in the secure viewer with their name as a watermark. Nothing can be saved, shared or recorded.',
+      ['See in secure viewer'],
+      ['Save', 'Forward', 'Copy', 'Screenshot', 'Record'],
+    ),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return SafeArea(
+      child: ListenableBuilder(
+        listenable: _draft,
+        builder: (context, _) => SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Who can do what with your message?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 4),
+              Text(
+                widget.allowChange ? 'Choose a privacy level for the messages you send.' : 'The group admin fixed the privacy level for this group.',
+                style: TextStyle(color: p.textSecondary, fontSize: 13),
               ),
-          ],
+              const SizedBox(height: 14),
+              for (final v in MessageVisibility.values) _levelCard(context, v),
+              const SizedBox(height: 8),
+              const Text('Options for the next message', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text('Disappears', style: TextStyle(color: p.textSecondary, fontSize: 13)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final e in const [('never', 'Never'), ('view_once', 'View once'), ('1h', 'After 1 hour'), ('24h', 'After 24 hours'), ('7d', 'After 7 days')])
+                    ChoiceChip(
+                      label: Text(e.$2),
+                      selected: _draft.expiry == e.$1,
+                      showCheckmark: false,
+                      onSelected: (_) => _draft.update(expiry: e.$1),
+                    ),
+                ],
+              ),
+              if (_level == MessageVisibility.public) ...[
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.download_outlined),
+                  title: const Text('Allow saving'),
+                  subtitle: const Text('The other person can download photos and files'),
+                  value: _draft.allowDownload,
+                  onChanged: (v) => _draft.update(allowDownload: v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.screenshot_outlined),
+                  title: const Text('Allow screenshots'),
+                  value: _draft.allowScreenshot,
+                  onChanged: (v) => _draft.update(allowScreenshot: v),
+                ),
+              ],
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.notifications_off_outlined),
+                title: const Text('Send silently'),
+                subtitle: const Text('No notification sound for the other person'),
+                value: _draft.silent,
+                onChanged: (v) => _draft.update(silent: v),
+              ),
+              const SizedBox(height: 8),
+              PrimaryButton(label: 'Done', onPressed: () => Navigator.pop(context, _level)),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _levelCard(BuildContext context, MessageVisibility v) {
+    final p = context.palette;
+    final info = _levels[v]!;
+    final selected = v == _level;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected ? p.activeBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: widget.allowChange ? () => setState(() => _level = v) : null,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: selected ? context.colors.primary : p.divider, width: selected ? 1.6 : 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(v.icon, color: selected ? context.colors.primary : null),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: v.label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                            TextSpan(text: '  -  ${info.$1}', style: TextStyle(color: p.textSecondary, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, color: selected ? context.colors.primary : p.textMuted),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(info.$2, style: TextStyle(color: p.textSecondary, height: 1.35)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final a in info.$3) _Tag(text: a, allowed: true),
+                    for (final b in info.$4) _Tag(text: b, allowed: false),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.text, required this.allowed});
+
+  final String text;
+  final bool allowed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = allowed ? context.palette.success : context.palette.danger;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(allowed ? Icons.check : Icons.close, size: 13, color: color),
+          const SizedBox(width: 3),
+          Text(allowed ? text : 'No $text', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
 }
 
 /// Composer bar with privacy selector. Runs the content filter before send.

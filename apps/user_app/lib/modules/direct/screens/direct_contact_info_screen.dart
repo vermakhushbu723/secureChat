@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import '../../media/screens/secure_file_viewer_screen.dart' show showSecureFile;
 import '../data/direct_models.dart';
 import '../data/direct_repository.dart';
 import '../state/conversations_controller.dart';
@@ -155,7 +156,7 @@ class _DirectContactInfoScreenState extends State<DirectContactInfoScreen> {
                             padding: const EdgeInsets.only(right: 8),
                             child: GestureDetector(
                               onTap: () => m.media!.secure
-                                  ? context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!))
+                                  ? showSecureFile(context, m.media!.fileId!)
                                   : m.type == DmType.video
                                   ? VideoPlayerPage.open(context, m.media!.fullUrl)
                                   : ImageViewerPage.open(context, m.media!.fullUrl),

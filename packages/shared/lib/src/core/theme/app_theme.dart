@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_palette.dart';
 
-/// SecureChat design system, WhatsApp style: Inter, green #00A884 accent,
-/// dark #0B141A / light white backgrounds. Spacing scale 4/8/12/16/20/24/32/40/48.
+/// SecureChat design system (colours from the logo): Inter, violet #6C2BF2 primary,
+/// magenta #C84DF5 accent, white / lavender light theme and deep navy #0E0B2E dark theme. Spacing scale 4/8/12/16/20/24/32/40/48.
 class AppTheme {
   AppTheme._();
 
@@ -106,11 +106,11 @@ class AppTheme {
         .apply(fontFamily: fontFamily, bodyColor: textPrimary, displayColor: textPrimary);
 
     final dark = brightness == Brightness.dark;
-    // Text / icon color on the selected chip, nav pill and tab (WhatsApp: light green on dark green).
+    // Text / icon color on the selected chip, nav pill and tab (lavender on deep violet in dark).
     final selectedFg = dark ? AppColors.activeBg : AppColors.lightTextPrimary;
     // Links and text buttons: the darker green is unreadable on the dark background.
     final link = dark ? AppColors.primary : AppColors.primaryDark;
-    final disabled = dark ? const Color(0xFF2A3942) : const Color(0xFFD1D7DB);
+    final disabled = dark ? const Color(0xFF2B2560) : AppColors.disabled;
     final r10 = BorderRadius.circular(10);
     final r12 = BorderRadius.circular(12);
     const buttonText = TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600, fontSize: 14);
@@ -209,8 +209,8 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: dark ? const Color(0xFF21C063) : const Color(0xFF1DAA61),
-        foregroundColor: dark ? AppColors.darkBackground : AppColors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -346,7 +346,7 @@ class AppTheme {
       sliderTheme: const SliderThemeData(activeTrackColor: AppColors.primary, thumbColor: AppColors.primary),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: dark ? const Color(0xFFE9EDEF) : const Color(0xFF323739),
+        backgroundColor: dark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
         contentTextStyle: TextStyle(fontFamily: fontFamily, color: dark ? AppColors.lightTextPrimary : AppColors.white, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: r10),
       ),

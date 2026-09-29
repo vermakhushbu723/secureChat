@@ -89,25 +89,28 @@ class AppSearchField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final bool autofocus;
 
-  /// Compact search box: 36px high, #F1F5F9, radius 10, 16px icon, 12px muted placeholder.
+  /// Search box: 46px pill, 15px text, 20px icon (same size as the chat list search).
   @override
   Widget build(BuildContext context) {
     final muted = context.palette.textMuted;
-    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none);
+    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none);
     return SizedBox(
-      height: 36,
+      height: 46,
       child: TextField(
         autofocus: autofocus,
         onChanged: onChanged,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 15),
         textAlignVertical: TextAlignVertical.center,
+        textInputAction: TextInputAction.search,
+        // Fill the whole 46px pill (otherwise the filled background shrinks to the text).
+        expands: true,
+        maxLines: null,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: muted, fontSize: 12),
-          prefixIcon: Icon(Icons.search, size: 16, color: context.palette.textSecondary),
-          prefixIconConstraints: const BoxConstraints(minWidth: 36),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          isDense: true,
+          hintStyle: TextStyle(color: muted, fontSize: 15),
+          prefixIcon: Icon(Icons.search, size: 22, color: context.palette.textSecondary),
+          prefixIconConstraints: const BoxConstraints(minWidth: 48),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           border: border,
           enabledBorder: border,
           focusedBorder: border,

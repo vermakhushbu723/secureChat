@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../../../core/core.dart';
+import '../../media/screens/secure_file_viewer_screen.dart' show showSecureFile;
 import '../../direct/data/direct_models.dart';
 import '../../direct/widgets/dm_bubble.dart' show MessageMenuButton, StatusTicks;
 import '../../direct/widgets/linkified_text.dart';
@@ -365,7 +366,7 @@ class _Visual extends StatelessWidget {
           ? null
           : () {
               if (secure && media?.fileId != null) {
-                context.push(AppRoutes.secureFileViewerOf(media!.fileId!));
+                showSecureFile(context, media!.fileId!);
               } else {
                 context.push(video ? AppRoutes.videoViewerOf(m.id) : AppRoutes.imageViewerOf(m.id));
               }
@@ -394,7 +395,7 @@ class _SecureTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final media = message.media;
     return InkWell(
-      onTap: media?.fileId == null ? null : () => context.push(AppRoutes.secureFileViewerOf(media!.fileId!)),
+      onTap: media?.fileId == null ? null : () => showSecureFile(context, media!.fileId!),
       child: Container(
         width: 250,
         padding: const EdgeInsets.all(10),

@@ -1,6 +1,7 @@
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/core.dart';
+import '../../groups/widgets/join_group_sheet.dart';
 
 final _urlPattern = RegExp(r'(https?://[^\s]+)|(www\.[^\s]+)', caseSensitive: false);
 final _emojiOnly = RegExp(
@@ -13,7 +14,7 @@ bool isEmojiOnly(String text) => text.runes.length <= 12 && _emojiOnly.hasMatch(
 
 /// Our own links (invite links, chats) open inside the app instead of the browser.
 final _groupLink = RegExp(r'/group/([A-Za-z]{3}-[A-Za-z0-9]{6})');
-const _appHosts = {'securechat.candledust.online', 'app.securechat.in'};
+const _appHosts = {'prosecurely.online', 'www.prosecurely.online', 'securechat.candledust.online'};
 
 void openLink(BuildContext context, String url) {
   final uri = Uri.tryParse(url.startsWith('http') ? url : 'https://$url');
@@ -22,7 +23,7 @@ void openLink(BuildContext context, String url) {
     final invite = _groupLink.firstMatch(uri.path);
     // Invite link -> join directly in the app (no browser round trip).
     if (invite != null) {
-      context.push(AppRoutes.joinByCodeOf(invite.group(1)!.toUpperCase()));
+      showJoinGroup(context, invite.group(1)!);
       return;
     }
     if (uri.path.length > 1) {

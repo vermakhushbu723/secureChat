@@ -2,13 +2,17 @@
 
 /// Backend location. Override at build time:
 /// `flutter run --dart-define=API_URL=https://api.securechat.in`
+/// Shown in Settings / Profile so testers can check which build they are running.
+/// Keep in sync with `version` in pubspec.yaml.
+const appVersion = '1.0.5';
+
 class ApiConfig {
   ApiConfig._();
 
   static const _override = String.fromEnvironment('API_URL');
 
   /// Live backend (VPS, nginx + SSL).
-  static const _production = 'https://securechat.candledust.online';
+  static const _production = 'https://prosecurely.online';
   // static const _production = 'https://securechat-backend-wmyj.onrender.com'; // old Render deploy
 
   static String get baseUrl {

@@ -16,12 +16,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               children: [
                 const Spacer(),
-                Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(color: p.surfaceAlt, shape: BoxShape.circle),
-                  child: const Icon(Icons.forum_rounded, size: 88, color: AppColors.primary),
-                ),
+                const AppLogo(size: 180, wide: true),
                 const SizedBox(height: 40),
                 Text(
                   'Welcome to ${AppStrings.appName}',

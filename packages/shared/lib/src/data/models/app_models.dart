@@ -376,7 +376,7 @@ class InviteLink {
   final String status; // Active, Expired, Revoked
   final bool approval;
 
-  String get url => 'app.securechat.in/group/$code';
+  String get url => 'prosecurely.online/group/$code';
 }
 
 class ExtensionRequest {

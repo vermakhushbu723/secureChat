@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+
 import '../../../core/core.dart';
 
-/// Login / signup in one step: a single field for the mobile number or email ID,
-/// then a 6 digit code. New accounts continue to the Personal / Business step.
+/// Login / signup on one page: mobile number -> email ID -> code sent to the email.
+/// Only the field changes between the steps, the page stays the same.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, this.from});
 
@@ -12,78 +16,281 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+enum _Step { mobile, email, code }
+
 class _LoginScreenState extends State<LoginScreen> {
-  final _identifier = TextEditingController();
+  final _mobile = TextEditingController();
+  final _email = TextEditingController();
+  final _code = TextEditingController();
+  final _focus = FocusNode();
+  _Step _step = _Step.mobile;
   bool _loading = false;
+  String? _error;
+  String? _devCode;
+  bool _emailed = false;
+  Timer? _timer;
+  int _seconds = 0;
 
-  bool get _isEmail => _identifier.text.contains('@');
-
-  @override
-  void initState() {
-    super.initState();
-    _identifier.addListener(() => setState(() {}));
-  }
+  static final _mobilePattern = RegExp(r'^(\+?91)?0?[6-9]\d{9}$|^\+\d{8,15}$');
+  static final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
 
   @override
   void dispose() {
-    _identifier.dispose();
+    _timer?.cancel();
+    _mobile.dispose();
+    _email.dispose();
+    _code.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
-  Future<void> _continue() async {
-    final id = _identifier.text.trim();
-    if (id.isEmpty) return context.showSnack('Enter your mobile number or email ID');
-    setState(() => _loading = true);
+  String get _mobileValue => _mobile.text.replaceAll(RegExp(r'[\s()-]'), '');
+
+  void _go(_Step step) {
+    setState(() {
+      _step = step;
+      _error = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() => _seconds = 30);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_seconds <= 1) t.cancel();
+      if (mounted) setState(() => _seconds--);
+    });
+  }
+
+  Future<void> _next() async {
+    if (_loading) return;
+    switch (_step) {
+      case _Step.mobile:
+        if (!_mobilePattern.hasMatch(_mobileValue)) return setState(() => _error = 'Enter a valid 10 digit mobile number');
+        _go(_Step.email);
+      case _Step.email:
+        if (!_emailPattern.hasMatch(_email.text.trim())) return setState(() => _error = 'Enter a valid email ID');
+        await _sendCode();
+      case _Step.code:
+        await _verify();
+    }
+  }
+
+  Future<void> _sendCode() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final res = await AuthService.instance.requestOtp(id);
+      final res = await AuthService.instance.requestOtpPair(_mobileValue, _email.text.trim());
       if (!mounted) return;
-      context.push(AppRoutes.otpFor(identifier: res.sentTo, from: widget.from, devCode: res.devCode));
+      _devCode = res.devCode;
+      _emailed = res.emailed;
+      _code.text = res.devCode ?? '';
+      _startTimer();
+      _go(_Step.code);
     } on ApiException catch (e) {
-      if (mounted) context.showSnack(e.message);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  Future<void> _verify() async {
+    final code = _code.text.trim();
+    if (code.length != 6) return setState(() => _error = 'Enter the 6 digit code');
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final res = await AuthService.instance.verifyOtpPair(_mobileValue, _email.text.trim(), code);
+      if (!mounted) return;
+      final from = widget.from;
+      if (!res.user.profileCompleted) {
+        context.go(from == null ? AppRoutes.profileSetup : '${AppRoutes.profileSetup}?from=${Uri.encodeComponent(from)}');
+      } else {
+        context.go(from ?? AppRoutes.home);
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _back() {
+    if (_step == _Step.code) return _go(_Step.email);
+    if (_step == _Step.email) return _go(_Step.mobile);
+    if (context.canPop()) context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: context.canPop()),
-      body: FormPage(
-        items: [
-          const SizedBox(height: 8),
-          Text(
-            'Enter your mobile number or email',
-            textAlign: TextAlign.center,
-            style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${AppStrings.appName} will send a 6 digit code to verify it. New here? The same step creates your account.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: p.textSecondary, height: 1.5),
-          ),
-          if (widget.from != null) ...[
-            const SizedBox(height: 16),
-            const InfoBanner(icon: Icons.link, message: 'Login to continue where you left off.'),
+    final (title, subtitle) = switch (_step) {
+      _Step.mobile => ('Enter your mobile number', '${AppStrings.appName} uses it to find your account. New here? The same steps create it.'),
+      _Step.email => ('Enter your email ID', 'We will send a 6 digit code to this email.'),
+      _Step.code => ('Enter the code', 'Sent to ${_email.text.trim()}'),
+    };
+    return PopScope(
+      canPop: _step == _Step.mobile,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: _step == _Step.mobile && !context.canPop() ? null : IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back),
+          automaticallyImplyLeading: false,
+        ),
+        body: FormPage(
+          items: [
+            const Center(child: AppLogo(size: 76)),
+            const SizedBox(height: 20),
+            _Progress(step: _step.index),
+            const SizedBox(height: 20),
+            Text(title, textAlign: TextAlign.center, style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: p.textSecondary, height: 1.5)),
+            if (widget.from != null) ...[
+              const SizedBox(height: 16),
+              const InfoBanner(icon: Icons.link, message: 'Login to continue where you left off.'),
+            ],
+            const SizedBox(height: 28),
+            // Only the field changes between the steps.
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, a) => FadeTransition(
+                opacity: a,
+                child: SlideTransition(position: Tween(begin: const Offset(0.15, 0), end: Offset.zero).animate(a), child: child),
+              ),
+              child: KeyedSubtree(key: ValueKey(_step), child: _field(context)),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(_error!, style: TextStyle(color: p.danger, fontSize: 13)),
+            ],
+            const SizedBox(height: 10),
+            if (_step == _Step.email)
+              _Chip(icon: Icons.phone_outlined, text: _mobileValue, onEdit: () => _go(_Step.mobile)),
+            if (_step == _Step.code) ...[
+              _Chip(icon: Icons.mail_outline, text: _email.text.trim(), onEdit: () => _go(_Step.email)),
+              const SizedBox(height: 8),
+              Center(
+                child: _seconds > 0
+                    ? Text('Resend code in 0:${_seconds.toString().padLeft(2, '0')}', style: TextStyle(color: p.textSecondary))
+                    : TextButton.icon(onPressed: _loading ? null : _sendCode, icon: const Icon(Icons.refresh), label: const Text('Resend code')),
+              ),
+              if (_devCode != null && !_emailed) ...[
+                const SizedBox(height: 8),
+                InfoBanner(icon: Icons.developer_mode, message: 'Test mode: email sending is not connected yet, so the code is filled in for you ($_devCode).'),
+              ],
+            ],
           ],
-          const SizedBox(height: 32),
-          AppTextField(
-            controller: _identifier,
-            label: 'Mobile number or email ID',
-            hint: '98765 43210 or you@example.com',
-            prefixIcon: _isEmail ? Icons.mail_outline : Icons.phone_outlined,
-            keyboardType: TextInputType.emailAddress,
-            onSubmitted: (_) => _loading ? null : _continue(),
+          bottom: PrimaryButton(
+            label: switch (_step) {
+              _Step.mobile => 'Next',
+              _Step.email => 'Send code',
+              _Step.code => 'Verify',
+            },
+            loading: _loading,
+            onPressed: _loading ? null : _next,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Indian numbers can be entered without +91.',
-            style: TextStyle(color: p.textMuted, fontSize: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _field(BuildContext context) {
+    return switch (_step) {
+      _Step.mobile => TextField(
+        controller: _mobile,
+        focusNode: _focus,
+        autofocus: true,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.next,
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))],
+        onSubmitted: (_) => _next(),
+        decoration: const InputDecoration(labelText: 'Mobile number', hintText: '98765 43210', prefixIcon: Icon(Icons.phone_outlined), prefixText: '+91  '),
+      ),
+      _Step.email => TextField(
+        controller: _email,
+        focusNode: _focus,
+        autofocus: true,
+        keyboardType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.send,
+        autofillHints: const [AutofillHints.email],
+        onSubmitted: (_) => _next(),
+        decoration: const InputDecoration(labelText: 'Email ID', hintText: 'you@example.com', prefixIcon: Icon(Icons.mail_outline)),
+      ),
+      _Step.code => TextField(
+        controller: _code,
+        focusNode: _focus,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        maxLength: 6,
+        textAlign: TextAlign.center,
+        autofillHints: const [AutofillHints.oneTimeCode],
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: const TextStyle(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.w700),
+        onChanged: (v) {
+          if (v.length == 6) _next();
+        },
+        onSubmitted: (_) => _next(),
+        decoration: const InputDecoration(counterText: '', hintText: '------'),
+      ),
+    };
+  }
+}
+
+/// Mobile -> Email -> Code dots.
+class _Progress extends StatelessWidget {
+  const _Progress({required this.step});
+
+  final int step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var i = 0; i < 3; i++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: i == step ? 28 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: i <= step ? AppColors.primary : context.palette.divider,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
+      ],
+    );
+  }
+}
+
+/// Already entered value with "Edit".
+class _Chip extends StatelessWidget {
+  const _Chip({required this.icon, required this.text, required this.onEdit});
+
+  final IconData icon;
+  final String text;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),
+      decoration: BoxDecoration(color: context.palette.surfaceAlt, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: context.palette.textSecondary),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, overflow: TextOverflow.ellipsis)),
+          TextButton(onPressed: onEdit, child: const Text('Edit')),
         ],
-        bottom: PrimaryButton(label: 'Next', loading: _loading, onPressed: _loading ? null : _continue),
       ),
     );
   }

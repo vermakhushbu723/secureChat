@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import '../../../core/core.dart';
+import '../../groups/data/group_models.dart' show visibilityOf, visibilityValue;
+import '../../secure_message/state/message_draft.dart';
 import '../data/direct_models.dart';
 import '../data/direct_repository.dart';
 import 'conversations_controller.dart';
@@ -298,7 +300,7 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Privacy level picked in the composer (lock icon): public | private | highly_protected.
-  String visibility = 'public';
+  String visibility = visibilityValue(Session.defaultVisibility.value);
 
   void setVisibility(String v) {
     visibility = v;
@@ -316,7 +318,7 @@ class ChatController extends ChangeNotifier {
       return editMessage(edit, text);
     }
     final m = _pending(DmType.text, text: text, visibility: visibility);
-    await _deliver(m, {'type': 'text', 'text': text, 'visibility': visibility});
+    await _deliver(m, {'type': 'text', 'text': text, ..._options(visibility)});
   }
 
   Future<void> sendLocation(DmLocation location) async {
@@ -327,6 +329,14 @@ class ChatController extends ChangeNotifier {
   Future<void> sendContact(DmContact contact) async {
     final m = _pending(DmType.contact, contact: contact);
     await _deliver(m, {'type': 'contact', 'contact': contact.toJson()});
+  }
+
+  /// Privacy sheet options (same as groups): level, disappearing / view once, saving,
+  /// screenshots, silent. One-off options reset after the message is sent.
+  Map<String, dynamic> _options(String level) {
+    final payload = MessageDraft.instance.payload(visibilityOf(level));
+    MessageDraft.instance.resetAfterSend();
+    return payload;
   }
 
   /// Upload then send. The bubble shows the local preview + progress meanwhile.
@@ -349,7 +359,7 @@ class ChatController extends ChangeNotifier {
         },
       );
       m = m.copyWith(media: media, uploadProgress: 1);
-      await _deliver(m, {'type': type.name, 'text': caption, 'media': media.toJson(), 'visibility': level});
+      await _deliver(m, {'type': type.name, 'text': caption, 'media': media.toJson(), ..._options(level)});
     } on ApiException catch (e) {
       _upsertLocal(m.copyWith(status: DeliveryStatus.failed, error: e.message));
     }
@@ -406,6 +416,13 @@ class ChatController extends ChangeNotifier {
 
   // ================================================================= actions
   Future<void> editMessage(DmMessage m, String text) async => _replace(await DirectRepository.edit(m.id, text));
+
+  /// View once: fetches the content one time; the bubble then shows "Opened".
+  Future<DmMessage> openViewOnce(DmMessage m) async {
+    final revealed = await DirectRepository.openViewOnce(m.id);
+    _replace(m.markOpened());
+    return revealed;
+  }
 
   Future<void> deleteMessage(DmMessage m, {required bool forEveryone}) async {
     await DirectRepository.delete(m.id, forEveryone: forEveryone);

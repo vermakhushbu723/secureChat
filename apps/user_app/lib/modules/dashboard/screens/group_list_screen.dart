@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import '../../groups/widgets/join_group_sheet.dart';
 import '../../groups/data/group_models.dart';
 import '../../groups/state/groups_controller.dart';
 import '../../groups/widgets/group_tile.dart';
@@ -44,7 +45,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
             appBar: AppBar(
               title: const Text('Groups'),
               actions: [
-                IconButton(icon: const Icon(Icons.link), tooltip: 'Join with link', onPressed: () => context.push(AppRoutes.joinGroup)),
+                IconButton(icon: const Icon(Icons.link), tooltip: 'Join with link', onPressed: () => askInviteLink(context)),
                 IconButton(icon: const Icon(Icons.group_add_outlined), tooltip: 'Create group', onPressed: () => context.push(AppRoutes.createGroup)),
               ],
             ),

@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import '../../media/screens/secure_file_viewer_screen.dart' show showSecureFile;
 import '../../direct/data/direct_models.dart';
 import '../../direct/widgets/dm_avatar.dart';
 import '../../groups/data/group_models.dart';
@@ -71,7 +72,7 @@ class _GroupChatState extends State<_GroupChat> with WidgetsBindingObserver {
 
   Future<void> _openViewOnce(GroupMessage m) async {
     if (m.media?.fileId != null) {
-      context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!));
+      showSecureFile(context, m.media!.fileId!);
       return;
     }
     final ok = await context.confirm(

@@ -106,6 +106,10 @@ class ProfileScreen extends StatelessWidget {
               }
             },
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Text('${AppStrings.appName}  -  version $appVersion', textAlign: TextAlign.center, style: TextStyle(color: p.textMuted, fontSize: 12)),
+          ),
         ],
       ),
     );

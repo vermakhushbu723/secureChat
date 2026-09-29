@@ -190,13 +190,10 @@ class _GroupComposerState extends State<GroupComposer> {
   }
 
   Future<void> _pickPrivacy() async {
-    final mode = chat.detail?.settings.messageMode ?? 'user_select';
-    if (mode != 'user_select') {
-      context.showSnack('Group admin set message mode to ${mode == 'public' ? 'Public' : 'Private'}');
-      return;
-    }
-    final v = await pickVisibility(context, _visibility);
-    if (v != null) setState(() => _visibility = v);
+    // Admin fixed the level: the sheet still offers the per message options.
+    final fixed = (chat.detail?.settings.messageMode ?? 'user_select') != 'user_select';
+    final v = await pickVisibility(context, chat.visibilityFor(_visibility), allowChange: !fixed);
+    if (v != null && !fixed) setState(() => _visibility = v);
   }
 
   @override
@@ -217,7 +214,10 @@ class _GroupComposerState extends State<GroupComposer> {
               Icon(needsPlan ? Icons.workspace_premium_outlined : Icons.lock_outline, color: context.palette.textSecondary),
               const SizedBox(width: 10),
               Expanded(child: Text(reason, style: TextStyle(color: context.palette.textSecondary))),
-              if (needsPlan) TextButton(onPressed: () => context.push(AppRoutes.trialStatus), child: const Text('Upgrade')),
+              if (needsPlan)
+                (AuthService.instance.user.value?.subscription.canClaimTrial ?? false)
+                    ? TextButton(onPressed: () => showTrialClaim(context), child: const Text('Claim trial'))
+                    : TextButton(onPressed: () => context.push(AppRoutes.trialStatus), child: const Text('Upgrade')),
             ],
           ),
         ),

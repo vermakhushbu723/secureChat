@@ -1,6 +1,7 @@
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/core.dart';
+import '../../media/screens/secure_file_viewer_screen.dart' show showSecureFile;
 import '../data/direct_models.dart';
 import '../data/direct_repository.dart';
 import '../widgets/media_viewers.dart';
@@ -86,7 +87,7 @@ class _MediaTabState extends State<_MediaTab> with AutomaticKeepAliveClientMixin
               // Protected photo / video: lock tile, opens in the secure viewer.
               if (m.media!.secure) {
                 return GestureDetector(
-                  onTap: () => context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!)),
+                  onTap: () => showSecureFile(context, m.media!.fileId!),
                   child: Container(color: context.palette.surfaceAlt, child: Icon(Icons.lock, color: context.palette.textSecondary)),
                 );
               }
@@ -111,7 +112,7 @@ class _MediaTabState extends State<_MediaTab> with AutomaticKeepAliveClientMixin
                   title: Text(m.media?.name ?? 'File'),
                   subtitle: Text('${formatBytes(m.media?.size ?? 0)}  •  ${formatListTime(m.createdAt)}${m.media?.secure == true ? '  •  Secure' : ''}'),
                   onTap: () => m.media?.secure == true
-                      ? context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!))
+                      ? showSecureFile(context, m.media!.fileId!)
                       : openExternal(context, m.media!.fullUrl),
                 ),
             ],

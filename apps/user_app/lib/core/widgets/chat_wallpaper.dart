@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:shared/shared.dart';
 
-/// WhatsApp-style chat background: the chat colour with a faint doodle pattern.
+/// Chat background: the chat colour with a faint doodle pattern.
 class ChatWallpaper extends StatelessWidget {
   const ChatWallpaper({super.key, required this.child});
 
@@ -17,7 +17,7 @@ class ChatWallpaper extends StatelessWidget {
         children: [
           Positioned.fill(
             child: RepaintBoundary(
-              child: CustomPaint(painter: _DoodlePainter(dark ? const Color(0x0DFFFFFF) : const Color(0x14A08C6E))),
+              child: CustomPaint(painter: _DoodlePainter(dark ? const Color(0x10C84DF5) : const Color(0x146C2BF2))),
             ),
           ),
           child,

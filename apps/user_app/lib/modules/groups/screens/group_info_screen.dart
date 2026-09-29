@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import '../../media/screens/secure_file_viewer_screen.dart' show showSecureFile;
 import '../../direct/data/direct_models.dart';
 import '../data/group_models.dart';
 import '../data/group_repository.dart';
@@ -135,7 +136,7 @@ class _Info extends StatelessWidget {
                       final secure = m.media?.secure == true;
                       return InkWell(
                         onTap: () => secure && m.media?.fileId != null
-                            ? context.push(AppRoutes.secureFileViewerOf(m.media!.fileId!))
+                            ? showSecureFile(context, m.media!.fileId!)
                             : context.push(m.type == 'video' ? AppRoutes.videoViewerOf(m.id) : AppRoutes.imageViewerOf(m.id)),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10),

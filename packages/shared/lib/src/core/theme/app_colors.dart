@@ -1,56 +1,57 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens: WhatsApp-style palette (green accent, #0B141A dark, #EFEAE2 light chat).
+/// Design tokens taken from the SecureChat logo: electric violet bubble, magenta lock,
+/// indigo glow, lavender-white face and a deep navy background.
 class AppColors {
   AppColors._();
 
-  // Primary (WhatsApp green)
-  static const Color primary = Color(0xFF00A884); // buttons, active icons, FAB, links
-  static const Color primaryDark = Color(0xFF008069); // pressed, active text
-  static const Color secondary = Color(0xFF53BDEB); // links, read ticks
-  static const Color accent = Color(0xFF25D366); // special icons, accents
-  static const Color activeBg = Color(0xFFD9FDD3); // selected chip / nav pill (light)
+  // Brand (logo)
+  static const Color primary = Color(0xFF6C2BF2); // violet: buttons, active icons, FAB, links
+  static const Color primaryDark = Color(0xFF5410E0); // pressed, active text
+  static const Color secondary = Color(0xFF3D34C6); // indigo: links, highlights
+  static const Color accent = Color(0xFFC84DF5); // magenta lock: special accents
+  static const Color activeBg = Color(0xFFEDE7FF); // selected chip / nav pill (light)
 
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primary, primaryDark],
+    colors: [Color(0xFF5A11F9), accent],
   );
 
   static const Color white = Color(0xFFFFFFFF);
-  static const Color black = Color(0xFF111B21);
+  static const Color black = Color(0xFF1A1640);
 
-  // Light neutrals (WhatsApp light)
+  // Light neutrals (lavender-white from the logo bubble)
   static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color lightSurface = Color(0xFFFFFFFF); // cards, sheets, panels
-  static const Color lightSurfaceAlt = Color(0xFFF0F2F5); // inputs, search
-  static const Color lightDivider = Color(0xFFE9EDEF);
-  static const Color lightDividerSoft = Color(0xFFF0F2F5);
-  static const Color lightTextPrimary = Color(0xFF111B21);
-  static const Color lightTextSecondary = Color(0xFF667781);
-  static const Color lightTextMuted = Color(0xFF8696A0);
-  static const Color lightChatBackground = Color(0xFFEFEAE2);
+  static const Color lightSurfaceAlt = Color(0xFFF3F0FE); // inputs, search
+  static const Color lightDivider = Color(0xFFE7E3F8);
+  static const Color lightDividerSoft = Color(0xFFF3F0FE);
+  static const Color lightTextPrimary = Color(0xFF1A1640);
+  static const Color lightTextSecondary = Color(0xFF6B6790);
+  static const Color lightTextMuted = Color(0xFF9C98B8);
+  static const Color lightChatBackground = Color(0xFFF4F1FC);
   static const Color lightBubbleIn = Color(0xFFFFFFFF);
-  static const Color lightBubbleOut = Color(0xFFD9FDD3);
+  static const Color lightBubbleOut = Color(0xFFE6DDFF);
 
-  // Dark neutrals (WhatsApp dark)
-  static const Color darkBackground = Color(0xFF0B141A);
-  static const Color darkSurface = Color(0xFF111B21);
-  static const Color darkSurfaceAlt = Color(0xFF202C33);
-  static const Color darkDivider = Color(0xFF222D34);
-  static const Color darkTextPrimary = Color(0xFFE9EDEF);
-  static const Color darkTextSecondary = Color(0xFF8696A0);
-  static const Color darkTextMuted = Color(0xFF667781);
-  static const Color darkChatBackground = Color(0xFF0B141A);
-  static const Color darkBubbleIn = Color(0xFF202C33);
-  static const Color darkBubbleOut = Color(0xFF005C4B);
-  static const Color darkActiveBg = Color(0xFF103529);
+  // Dark neutrals (deep navy background of the logo)
+  static const Color darkBackground = Color(0xFF0E0B2E);
+  static const Color darkSurface = Color(0xFF151139);
+  static const Color darkSurfaceAlt = Color(0xFF221C4F);
+  static const Color darkDivider = Color(0xFF2B2560);
+  static const Color darkTextPrimary = Color(0xFFECEAFF);
+  static const Color darkTextSecondary = Color(0xFFA39FC8);
+  static const Color darkTextMuted = Color(0xFF7A76A3);
+  static const Color darkChatBackground = Color(0xFF0E0B2E);
+  static const Color darkBubbleIn = Color(0xFF221C4F);
+  static const Color darkBubbleOut = Color(0xFF4B22C9);
+  static const Color darkActiveBg = Color(0xFF2E1F6E);
 
   // Status
-  static const Color success = Color(0xFF25D366); // online
-  static const Color warning = Color(0xFFFFB02E); // away
-  static const Color danger = Color(0xFFF15C6D); // errors, delete
+  static const Color success = Color(0xFF22C55E); // online
+  static const Color warning = Color(0xFFF59E0B); // away
+  static const Color danger = Color(0xFFEF4466); // errors, delete
   static const Color info = secondary;
-  static const Color offline = Color(0xFF8696A0);
-  static const Color disabled = Color(0xFF3B4A54);
+  static const Color offline = Color(0xFF9C98B8);
+  static const Color disabled = Color(0xFFD9D5EC);
 }

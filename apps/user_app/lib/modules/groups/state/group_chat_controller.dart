@@ -10,7 +10,7 @@ import 'groups_controller.dart';
 
 /// Result of a send attempt the UI must react to (content filter).
 class SendBlocked {
-  const SendBlocked({required this.code, required this.message, this.rule, this.warnings, this.maxWarnings});
+  const SendBlocked({required this.code, required this.message, this.rule, this.warnings, this.maxWarnings, this.claimTrial = false});
 
   factory SendBlocked.from(ApiException e) => SendBlocked(
     code: e.code,
@@ -18,6 +18,7 @@ class SendBlocked {
     rule: e.detailsMap['rule'] as String?,
     warnings: (e.detailsMap['warnings'] as num?)?.toInt(),
     maxWarnings: (e.detailsMap['maxWarnings'] as num?)?.toInt(),
+    claimTrial: e.detailsMap['claimTrial'] == true,
   );
 
   final String code;
@@ -25,6 +26,9 @@ class SendBlocked {
   final String? rule;
   final int? warnings;
   final int? maxWarnings;
+
+  /// New account that has not claimed the free trial yet.
+  final bool claimTrial;
 
   bool get isContent => code == 'CONTENT_BLOCKED';
 
@@ -100,6 +104,8 @@ class GroupChatController extends ChangeNotifier {
         _notify();
       }),
       ws.on('ready').listen((_) => _resync()),
+      // Plan changed (trial claimed, premium granted): "can send" may have changed too.
+      ws.on('user:updated').listen((_) => refreshDetail()),
     ]);
     try {
       detail = await GroupRepository.detail(groupId);

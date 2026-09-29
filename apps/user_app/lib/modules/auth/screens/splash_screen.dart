@@ -43,7 +43,9 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           children: [
             const Spacer(),
-            const Icon(Icons.forum_rounded, size: 84, color: AppColors.primary),
+            const AppLogo(size: 120),
+            const SizedBox(height: 20),
+            Text(AppStrings.appName, style: TextStyle(color: context.colors.onSurface, fontSize: 26, fontWeight: FontWeight.w800)),
             const Spacer(),
             Text('from', style: TextStyle(color: muted, fontSize: 13)),
             const SizedBox(height: 2),

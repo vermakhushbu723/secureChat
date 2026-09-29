@@ -3,6 +3,7 @@ import '../data/direct_models.dart';
 import '../state/chat_controller.dart';
 import '../widgets/dm_avatar.dart';
 import '../widgets/dm_bubble.dart';
+import '../widgets/view_once_dialog.dart';
 import '../widgets/dm_composer.dart';
 import '../widgets/message_actions.dart';
 
@@ -179,6 +180,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> with WidgetsBinding
             onLongPress: () => showMessageActions(context, chat, m),
             onRetry: () => _retry(m),
             onReactionTap: () => _showReactions(m),
+            onOpenViewOnce: () => _openViewOnce(m),
           ),
         ),
       );
@@ -219,6 +221,15 @@ class _DirectChatScreenState extends State<DirectChatScreen> with WidgetsBinding
       ),
       child: child,
     );
+  }
+
+  Future<void> _openViewOnce(DmMessage m) async {
+    try {
+      final revealed = await chat.openViewOnce(m);
+      if (mounted) await showViewOnce(context, revealed);
+    } on ApiException catch (e) {
+      if (mounted) context.showSnack(e.message);
+    }
   }
 
   Future<void> _retry(DmMessage m) async {

@@ -1,4 +1,5 @@
 import '../../../core/core.dart';
+import 'secure_file_viewer_screen.dart' show showSecureFile;
 import '../../direct/data/direct_models.dart';
 import '../../groups/data/group_models.dart';
 import '../../groups/data/group_repository.dart';
@@ -49,7 +50,7 @@ class _GalleryState extends State<_Gallery> {
   void _open(GroupMessage m) {
     final media = m.media;
     if (media?.secure == true && media?.fileId != null) {
-      context.push(AppRoutes.secureFileViewerOf(media!.fileId!));
+      showSecureFile(context, media!.fileId!);
       return;
     }
     switch (m.type) {

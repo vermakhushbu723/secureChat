@@ -3,6 +3,7 @@ import '../../calls/calls_screen.dart';
 import '../../direct/state/conversations_controller.dart';
 import '../../direct/widgets/dm_avatar.dart';
 import '../../groups/state/groups_controller.dart';
+import '../../groups/widgets/join_group_sheet.dart';
 import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
 
@@ -60,7 +61,40 @@ class _MainShellState extends State<MainShell> {
       ConversationsController.instance.ensureStarted();
       GroupsController.instance.ensureStarted();
       AppLayout.currentPath.value = widget.location;
+      _offerTrial();
+      _openPendingJoin();
     });
+    AuthService.instance.user.addListener(_offerTrial);
+    PendingJoin.code.addListener(_openPendingJoin);
+  }
+
+  /// Invite link opened (`/group/CODE`): join popup over the chat list.
+  void _openPendingJoin() {
+    final code = PendingJoin.code.value;
+    if (code == null || !AuthService.instance.isLoggedIn) return;
+    PendingJoin.code.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      code.isEmpty ? askInviteLink(context) : showJoinGroup(context, code);
+    });
+  }
+
+  /// Right after signup (once per app start): "Claim your 7 day free trial".
+  static bool _trialOffered = false;
+  void _offerTrial() {
+    final me = AuthService.instance.user.value;
+    if (_trialOffered || me == null || !me.profileCompleted || !me.subscription.canClaimTrial) return;
+    _trialOffered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showTrialClaim(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    AuthService.instance.user.removeListener(_offerTrial);
+    PendingJoin.code.removeListener(_openPendingJoin);
+    super.dispose();
   }
 
   @override
@@ -122,7 +156,7 @@ class _MainShellState extends State<MainShell> {
               labelType: NavigationRailLabelType.all,
               leading: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Icon(Icons.forum_rounded, color: AppColors.primary, size: 28),
+                child: AppLogo(size: 36),
               ),
               trailing: Expanded(
                 child: Align(
@@ -180,7 +214,7 @@ class _NothingOpen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.forum_rounded, size: 96, color: p.textMuted.withValues(alpha: 0.5)),
+              const AppLogo(size: 140, wide: true),
               const SizedBox(height: 28),
               Text(AppStrings.appName, style: context.text.headlineSmall?.copyWith(fontWeight: FontWeight.w300, fontSize: 30)),
               const SizedBox(height: 14),
