@@ -11,7 +11,7 @@ final screens = <String>[
   AdminRoutes.dashboard,
   // Users
   AdminRoutes.users, AdminRoutes.userDetailsOf('u1'), AdminRoutes.userActivityOf('u1'),
-  AdminRoutes.userLocationOf('u1'), AdminRoutes.blockedUsers,
+  AdminRoutes.userLocationOf('u1'), AdminRoutes.blockedUsers, AdminRoutes.searchPermissions,
   // Groups
   AdminRoutes.groups, AdminRoutes.groupCreate, AdminRoutes.groupDetailsOf('g1'), AdminRoutes.groupEditOf('g1'),
   AdminRoutes.groupMembersOf('g1'), AdminRoutes.groupLocationOf('g1'), AdminRoutes.inviteLinks,
@@ -20,7 +20,7 @@ final screens = <String>[
   // Location
   AdminRoutes.locations,
   // Message & content security
-  AdminRoutes.messages, AdminRoutes.forwardChains, AdminRoutes.moderation, AdminRoutes.numberFilter,
+  AdminRoutes.messages, AdminRoutes.forwardChains, AdminRoutes.moderation, AdminRoutes.blockedKeywords, AdminRoutes.numberFilter,
   AdminRoutes.abuseFilter, AdminRoutes.security,
   // Reports & system
   AdminRoutes.reports, AdminRoutes.analytics, AdminRoutes.notifications, AdminRoutes.auditLogs, AdminRoutes.staff,
@@ -28,7 +28,7 @@ final screens = <String>[
 ];
 
 void main() {
-  test('screen count', () => expect(screens.toSet().length, 31)); // 30 screens, group form used for create + edit
+  test('screen count', () => expect(screens.toSet().length, 33)); // 32 screens, group form used for create + edit
 
   testWidgets('guest is redirected to login', (tester) async {
     AdminSession.loggedIn.value = false;

@@ -59,6 +59,7 @@ class _ComposerState extends State<_Composer> {
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return context.showSnack('Type a message');
+    if (cannotSend(context, text, 'groups')) return;
     setState(() => _sending = true);
     final blocked = await GroupSender.text(d.id, text, _effective);
     if (!mounted) return;

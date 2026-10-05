@@ -19,6 +19,9 @@ class DirectRepository {
   static final _ws = SocketService.instance;
 
   // ------------------------------------------------------------------ users
+  /// Search Permissions set by the admin (New chat / Settings show the reason when off).
+  static Future<SearchPermission> searchPermission() async => SearchPermission.fromJson(_map(await _api.get('/users/me/search-permission')));
+
   static Future<List<DmUser>> searchUsers(String q) async =>
       _list(await _api.get('/users/search', query: {'q': q})).map(DmUser.fromJson).toList();
 
@@ -187,4 +190,25 @@ class DirectRepository {
     };
     return DioMediaType.parse(map[ext] ?? 'application/octet-stream');
   }
+}
+
+/// Can this user search people (1-to-1) and group members (admin Search Permissions).
+class SearchPermission {
+  const SearchPermission({required this.users, required this.members, this.usersReason, this.membersReason, this.hiddenFromSearch = false});
+
+  factory SearchPermission.fromJson(Map<String, dynamic> j) => SearchPermission(
+    users: j['users'] != false,
+    members: j['members'] != false,
+    usersReason: j['usersReason'] as String?,
+    membersReason: j['membersReason'] as String?,
+    hiddenFromSearch: j['hiddenFromSearch'] == true,
+  );
+
+  final bool users;
+  final bool members;
+  final String? usersReason;
+  final String? membersReason;
+
+  /// Others can not find this user (admin "Hide from search").
+  final bool hiddenFromSearch;
 }

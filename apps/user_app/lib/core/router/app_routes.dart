@@ -174,6 +174,7 @@ class AppRoutes {
   static const myReports = '/support/reports';
   static const reportUser = '/support/report-member/:userId';
   static const blockedUsers = '/support/blocked';
+  static const searchPermission = '/support/search-permission';
   static const helpSupport = '/support/help';
   static const policies = '/support/policies';
 

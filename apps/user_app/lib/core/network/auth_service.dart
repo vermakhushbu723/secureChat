@@ -26,6 +26,7 @@ class AuthUser {
     this.lastSeenVisible = true,
     this.readReceipts = true,
     this.searchable = true,
+    this.searchHidden = false,
     this.showContact = false,
     this.subscription = const PlanStatus(),
     this.accountType = 'personal',
@@ -46,6 +47,7 @@ class AuthUser {
     lastSeenVisible: (j['privacy'] as Map?)?['lastSeen'] != 'nobody',
     readReceipts: (j['privacy'] as Map?)?['readReceipts'] != false,
     searchable: (j['privacy'] as Map?)?['searchable'] != false,
+    searchHidden: j['searchHidden'] == true,
     showContact: (j['privacy'] as Map?)?['showContact'] == true,
     subscription: PlanStatus.fromJson(j['subscription'] as Map?),
     accountType: j['accountType'] as String? ?? 'personal',
@@ -69,6 +71,9 @@ class AuthUser {
 
   /// Settings: anyone can find me by user ID / name in search.
   final bool searchable;
+
+  /// Hidden from every search by the SecureChat team ("Anyone can find me" locked off).
+  final bool searchHidden;
 
   /// Settings: show my mobile number & email to other users.
   final bool showContact;
@@ -98,6 +103,7 @@ class AuthUser {
     'about': about,
     'avatarUrl': avatarUrl,
     'privacy': {'lastSeen': lastSeenVisible ? 'everyone' : 'nobody', 'readReceipts': readReceipts, 'searchable': searchable, 'showContact': showContact},
+    'searchHidden': searchHidden,
     'subscription': subscription.toJson(),
     'accountType': accountType,
     'businessAddress': businessAddress,

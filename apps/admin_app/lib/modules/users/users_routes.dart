@@ -1,6 +1,7 @@
 import '../../core/core.dart';
 import '../../core/router/admin_page.dart';
 import 'screens/blocked_users_screen.dart';
+import 'screens/search_permissions_screen.dart';
 import 'screens/user_activity_screen.dart';
 import 'screens/user_details_screen.dart';
 import 'screens/user_list_screen.dart';
@@ -22,4 +23,5 @@ final List<RouteBase> usersRoutes = [
     pageBuilder: (_, s) => adminPage(s, AdminUserLocationScreen(userId: userIdOf(s))),
   ),
   GoRoute(path: AdminRoutes.blockedUsers, pageBuilder: (_, s) => adminPage(s, const AdminBlockedUsersScreen())),
+  GoRoute(path: AdminRoutes.searchPermissions, pageBuilder: (_, s) => adminPage(s, const AdminSearchPermissionsScreen())),
 ];

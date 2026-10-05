@@ -97,9 +97,9 @@ class _BodyState extends State<_Body> {
         SwitchListTile(
           secondary: const Icon(Icons.person_search_outlined),
           title: const Text('Anyone can find me'),
-          subtitle: const Text('People can search you by user ID or name'),
-          value: me.searchable,
-          onChanged: _busy.contains('search')
+          subtitle: Text(me.searchHidden ? 'The SecureChat team hid your profile from search' : 'People can search you by user ID or name'),
+          value: me.searchable && !me.searchHidden,
+          onChanged: me.searchHidden || _busy.contains('search')
               ? null
               : (v) => _run('search', () => auth.updateProfile({'privacy': {'searchable': v}}), v ? 'People can find you in search' : 'You are hidden from search'),
         ),
@@ -134,6 +134,12 @@ class _BodyState extends State<_Body> {
           leading: const Icon(Icons.block),
           title: const Text('Blocked contacts'),
           onTap: () => context.push(AppRoutes.blockedUsers),
+        ),
+        ListTile(
+          leading: const Icon(Icons.person_search_outlined),
+          title: const Text('Search permissions'),
+          subtitle: const Text('Who you can search: people and group members'),
+          onTap: () => context.push(AppRoutes.searchPermission),
         ),
         SwitchListTile(
           secondary: const Icon(Icons.contact_phone_outlined),

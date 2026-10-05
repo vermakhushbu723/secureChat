@@ -1,7 +1,7 @@
 name: user_app
 description: "SecureChat user app - Android + PWA group chat."
 publish_to: none
-version: 1.0.5+6
+version: 1.0.9+10
 resolution: workspace
 
 environment:

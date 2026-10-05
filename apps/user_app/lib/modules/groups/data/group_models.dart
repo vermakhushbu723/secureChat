@@ -190,6 +190,7 @@ class GroupSettings {
     this.restrictNewMembers = false,
     this.muteGroup = false,
     this.freeAccess = false,
+    this.memberSearch = true,
     this.publicForwarding = true,
     this.privateForwarding = false,
     this.trackForwardChain = true,
@@ -227,6 +228,7 @@ class GroupSettings {
       restrictNewMembers: b(mem, 'restrictNewMembers', false),
       muteGroup: b(mem, 'muteGroup', false),
       freeAccess: b(mem, 'freeAccess', false),
+      memberSearch: b(mem, 'memberSearch', true),
       publicForwarding: b(sec, 'publicForwarding', true),
       privateForwarding: b(sec, 'privateForwarding', false),
       trackForwardChain: b(sec, 'trackForwardChain', true),
@@ -258,6 +260,9 @@ class GroupSettings {
   /// Creator option: members without premium can reply and open protected files
   /// while the group is premium.
   bool freeAccess;
+
+  /// Members can search the member list (owner / admins always can).
+  bool memberSearch;
   bool publicForwarding;
   bool privateForwarding;
   bool trackForwardChain;
@@ -285,7 +290,7 @@ class GroupSettings {
       'membersCanSendMedia': membersCanSendMedia,
     },
     'contentRules': [for (final r in ContentRule.values) if (contentRules.contains(r)) r.name],
-    'members': {'approveNewMembers': approveNewMembers, 'restrictNewMembers': restrictNewMembers, 'muteGroup': muteGroup, 'freeAccess': freeAccess},
+    'members': {'approveNewMembers': approveNewMembers, 'restrictNewMembers': restrictNewMembers, 'muteGroup': muteGroup, 'freeAccess': freeAccess, 'memberSearch': memberSearch},
     'security': securityJson(),
   };
 
@@ -319,6 +324,8 @@ class GroupMe {
     this.locationShared = false,
     this.canOpenProtected = true,
     this.plan = 'trial',
+    this.canSearchMembers = true,
+    this.memberSearchBlockedReason,
   });
 
   factory GroupMe.fromJson(Map<String, dynamic> j) {
@@ -337,6 +344,8 @@ class GroupMe {
       locationShared: loc['lat'] != null && loc['mode'] != 'none',
       canOpenProtected: j['canOpenProtected'] != false,
       plan: j['plan'] as String? ?? 'trial',
+      canSearchMembers: j['canSearchMembers'] != false,
+      memberSearchBlockedReason: j['memberSearchBlockedReason'] as String?,
     );
   }
 
@@ -356,6 +365,10 @@ class GroupMe {
 
   /// My plan: trial | premium | extended | locked.
   final String plan;
+
+  /// Search Permissions: admin / group admin can turn member search off.
+  final bool canSearchMembers;
+  final String? memberSearchBlockedReason;
 
   bool get isAdmin => role == MemberRole.owner || role == MemberRole.admin;
   bool get isOwner => role == MemberRole.owner;

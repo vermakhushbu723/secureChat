@@ -21,6 +21,7 @@ final GoRouter adminRouter = GoRouter(
   redirect: (_, state) {
     final path = state.uri.path;
     if (!AdminSession.loggedIn.value && path != AdminRoutes.login) return AdminRoutes.login;
+    if (AdminSession.loggedIn.value && (path == AdminRoutes.login || path == '/')) return AdminRoutes.dashboard;
     if (path == '/') return AdminRoutes.dashboard;
     return null;
   },

@@ -72,6 +72,7 @@ class _ReplyState extends State<_Reply> {
   Future<void> _send() async {
     if (_text.text.trim().isEmpty) return;
     setState(() => _sending = true);
+    if (cannotSend(context, _text.text, 'groups')) return;
     final blocked = await GroupSender.text(widget.groupId, _text.text, _effective, replyToId: widget.m.id);
     if (!mounted) return;
     setState(() => _sending = false);

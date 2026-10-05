@@ -55,6 +55,8 @@ class SocketService {
     'group:join_request',
     'group:request:declined',
     'group:location',
+    // Admin Blocked Keywords changed
+    'blocked-terms:updated',
   ];
 
   io.Socket? _socket;

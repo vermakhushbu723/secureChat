@@ -97,6 +97,7 @@ class _AttachState extends State<_Attach> {
   }
 
   Future<void> _send() async {
+    if (cannotSend(context, _caption.text, 'groups')) return;
     setState(() => _sending = true);
     final gid = widget.detail.id;
     var sent = 0;

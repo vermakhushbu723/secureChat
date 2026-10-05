@@ -65,7 +65,9 @@ class GroupSender {
       return true;
     }
     if (!context.mounted) return false;
-    if (blocked.isContent) {
+    if (blocked.isContent && (blocked.rule == 'keyword' || blocked.rule == 'phone')) {
+      context.showSnack(blocked.message);
+    } else if (blocked.isContent) {
       context.push(blocked.restrictionRoute);
     } else if (blocked.code == planRequiredCode) {
       await showPlanRequired(context, blocked.message);

@@ -35,6 +35,9 @@ class _DmComposerState extends State<DmComposer> {
 
   bool _hasText = false;
   bool _showEmoji = false;
+
+  /// Why the text can not be sent (numbers / blocked keyword); Send disabled while set.
+  String? _blocked;
   String? _editingId;
 
   bool _recording = false;
@@ -49,6 +52,7 @@ class _DmComposerState extends State<DmComposer> {
   void initState() {
     super.initState();
     chat.addListener(_onChatChanged);
+    BlockedTerms.instance.version.addListener(_checkBlocked);
     _focus.addListener(() {
       if (_focus.hasFocus && _showEmoji) setState(() => _showEmoji = false);
     });
@@ -63,6 +67,7 @@ class _DmComposerState extends State<DmComposer> {
       _text.text = editing.text;
       _hasText = true;
       _focus.requestFocus();
+      _checkBlocked();
     }
     if (mounted) setState(() {});
   }
@@ -70,6 +75,7 @@ class _DmComposerState extends State<DmComposer> {
   @override
   void dispose() {
     chat.removeListener(_onChatChanged);
+    BlockedTerms.instance.version.removeListener(_checkBlocked);
     _recordTimer?.cancel();
     _recorder.dispose();
     _text.dispose();
@@ -78,9 +84,21 @@ class _DmComposerState extends State<DmComposer> {
   }
 
   void _changed(String v) {
+    // Mobile number protection: the number is removed from the box as soon as it is typed.
+    if (PhoneGuard.blocks(v)) {
+      v = PhoneGuard.strip(v);
+      _text.value = TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
+      showNumberRemoved(context);
+    }
     final has = v.trim().isNotEmpty;
     if (has != _hasText) setState(() => _hasText = has);
+    _checkBlocked();
     chat.onComposerChanged(v);
+  }
+
+  void _checkBlocked() {
+    final hit = sendBlockReason(_text.text, 'direct');
+    if (hit != _blocked && mounted) setState(() => _blocked = hit);
   }
 
   /// Direct chats need your own trial / premium / extension.
@@ -98,7 +116,7 @@ class _DmComposerState extends State<DmComposer> {
 
   void _send() {
     final text = _text.text;
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || _blocked != null) return;
     if (!_planOk()) return;
     _text.clear();
     setState(() => _hasText = false);
@@ -209,6 +227,7 @@ class _DmComposerState extends State<DmComposer> {
       if (withCaption && files.length == 1) {
         final result = await _previewWithCaption(bytes, f.name, msgType);
         if (result == null) return;
+        if (!mounted || cannotSend(context, result, 'direct')) return;
         caption = result;
       }
       unawaited(chat.sendFile(bytes, f.name, msgType, caption: caption));
@@ -229,7 +248,8 @@ class _DmComposerState extends State<DmComposer> {
     if (!mounted) return;
     final name = shot.name.contains('.') ? shot.name : '${shot.name}.jpg';
     final caption = await _previewWithCaption(bytes, name, DmType.image);
-    if (caption != null) unawaited(chat.sendFile(bytes, name, DmType.image, caption: caption));
+    if (caption == null || !mounted || cannotSend(context, caption, 'direct')) return;
+    unawaited(chat.sendFile(bytes, name, DmType.image, caption: caption));
   }
 
   /// Returns the caption, or null when cancelled.
@@ -450,6 +470,7 @@ class _DmComposerState extends State<DmComposer> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (chat.replyTo != null || chat.editing != null) _ContextBar(chat: chat, onClose: _closeContext),
+            if (_blocked != null) BlockedTextBar(message: _blocked!),
             // One-off options chosen in the privacy sheet (same as group chats).
             ListenableBuilder(
               listenable: MessageDraft.instance,
@@ -569,9 +590,9 @@ class _DmComposerState extends State<DmComposer> {
           height: 44,
           child: IconButton.filled(
             color: Colors.white,
-            tooltip: _hasText ? 'Send' : 'Record voice message',
-            icon: Icon(editing ? Icons.check : (_hasText ? Icons.send : Icons.mic_none)),
-            onPressed: _hasText || editing ? _send : _startRecording,
+            tooltip: _blocked != null ? 'Can not send' : (_hasText ? 'Send' : 'Record voice message'),
+            icon: Icon(_blocked != null ? Icons.block : (editing ? Icons.check : (_hasText ? Icons.send : Icons.mic_none))),
+            onPressed: _blocked != null ? null : (_hasText || editing ? _send : _startRecording),
           ),
         ),
       ],

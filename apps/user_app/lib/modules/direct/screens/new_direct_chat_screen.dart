@@ -22,6 +22,17 @@ class _NewDirectChatScreenState extends State<NewDirectChatScreen> {
   List<DmUser> _results = [];
   String? _opening;
 
+  /// Admin Search Permissions: null = allowed (or not loaded yet), text = why search is off.
+  String? _searchOff;
+
+  @override
+  void initState() {
+    super.initState();
+    DirectRepository.searchPermission().then((p) {
+      if (mounted && !p.users) setState(() => _searchOff = p.usersReason ?? 'Search is turned off by the SecureChat team.');
+    }).catchError((_) {});
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -44,7 +55,7 @@ class _NewDirectChatScreenState extends State<NewDirectChatScreen> {
       final users = await DirectRepository.searchUsers(q);
       if (mounted && q == _query) setState(() => _results = users);
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) setState(() => e.code == 'SEARCH_DISABLED' ? _searchOff = e.message : _error = e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -78,7 +89,9 @@ class _NewDirectChatScreenState extends State<NewDirectChatScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
-              child: AppSearchField(hint: 'Search name, @username or phone', onChanged: _onChanged, autofocus: true),
+              child: _searchOff != null
+                  ? InfoBanner(icon: Icons.search_off, title: 'Search is off', message: '$_searchOff You can still chat with people from your recent chats and groups.')
+                  : AppSearchField(hint: 'Search name, @username or phone', onChanged: _onChanged, autofocus: true),
             ),
             if (_loading) const LinearProgressIndicator(minHeight: 2),
             if (_error != null)

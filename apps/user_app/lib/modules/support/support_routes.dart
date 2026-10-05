@@ -5,6 +5,7 @@ import 'screens/my_reports_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/policies_screen.dart';
 import 'screens/report_user_screen.dart';
+import 'screens/search_permission_screen.dart';
 
 /// Module 9: Notifications, Reports & Support (6 screens)
 final List<RouteBase> supportRoutes = [
@@ -16,6 +17,7 @@ final List<RouteBase> supportRoutes = [
   ),
   GoRoute(path: AppRoutes.reportGroup, builder: (_, s) => ReportUserScreen(groupId: s.pathParameters['groupId']!)),
   GoRoute(path: AppRoutes.blockedUsers, builder: (_, _) => const BlockedUsersScreen()),
+  GoRoute(path: AppRoutes.searchPermission, builder: (_, _) => const SearchPermissionScreen()),
   GoRoute(path: AppRoutes.helpSupport, builder: (_, _) => const HelpSupportScreen()),
   GoRoute(path: AppRoutes.policies, builder: (_, _) => const PoliciesScreen()),
 ];

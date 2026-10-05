@@ -1,62 +1,101 @@
 import '../../../core/core.dart';
 
-class AdminUserActivityScreen extends StatelessWidget {
+class AdminUserActivityScreen extends StatefulWidget {
   const AdminUserActivityScreen({super.key, required this.userId});
 
   final String userId;
 
-  static const _events = [
-    (Icons.login, 'Logged in', 'Chrome on Windows  |  103.21.44.10', '24 Sep, 10:02 AM'),
-    (Icons.send_outlined, 'Sent 14 messages', 'Project Alpha Team', '24 Sep, 10:15 AM'),
-    (Icons.shortcut, 'Forwarded a message', 'To Field Operations', '24 Sep, 10:22 AM'),
-    (Icons.upload_file_outlined, 'Uploaded protected file', 'Project_Plan_v2.pdf', '24 Sep, 10:40 AM'),
-    (Icons.gpp_maybe_outlined, 'Blocked by number filter', 'Message contained phone number', '24 Sep, 11:05 AM'),
-    (Icons.share_location, 'Started location sharing', 'Field Operations', '24 Sep, 11:30 AM'),
-    (Icons.logout, 'Logged out', 'Android app', '23 Sep, 09:44 PM'),
-  ];
+  @override
+  State<AdminUserActivityScreen> createState() => _AdminUserActivityScreenState();
+}
+
+class _AdminUserActivityScreenState extends State<AdminUserActivityScreen> {
+  int _days = 7;
+  String _type = 'all';
+  int _reload = 0;
+
+  static const _icons = {
+    'login': Icons.login,
+    'gpp_maybe': Icons.gpp_maybe_outlined,
+    'flag': Icons.flag_outlined,
+    'group_add': Icons.group_add_outlined,
+    'delete': Icons.delete_outline,
+    'person_remove': Icons.person_remove_outlined,
+    'admin': Icons.admin_panel_settings_outlined,
+    'settings': Icons.settings_outlined,
+    'link': Icons.link,
+    'how_to_reg': Icons.how_to_reg_outlined,
+    'upload_file': Icons.upload_file_outlined,
+    'share_location': Icons.share_location,
+    'shortcut': Icons.shortcut,
+  };
 
   @override
   Widget build(BuildContext context) {
-    final u = MockData.userById(userId);
-    return AdminPage(
-      title: 'User Activity',
-      subtitle: u.name,
-      showBack: true,
-      actions: [
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-          onPressed: () {},
-          icon: const Icon(Icons.date_range),
-          label: const Text('Last 7 days'),
-        ),
+    return AdminAsync<List<dynamic>>(
+      reloadKey: '${widget.userId}|$_days|$_type|$_reload',
+      load: () async => [
+        await AdminApi.get<Map<String, dynamic>>('/users/${widget.userId}/activity', {'days': _days, 'type': _type}),
+        await AdminApi.get<Map<String, dynamic>>('/users/${widget.userId}'),
       ],
-      children: [
-        ResponsiveGrid(
-          minItemWidth: 180,
-          children: const [
-            StatCard(icon: Icons.login, label: 'Logins', value: '18'),
-            StatCard(icon: Icons.forum_outlined, label: 'Messages', value: '342'),
-            StatCard(icon: Icons.shortcut, label: 'Forwards', value: '21'),
-            StatCard(icon: Icons.gpp_maybe_outlined, label: 'Violations', value: '3'),
+      builder: (context, data, _) {
+        final a = data[0] as Map<String, dynamic>;
+        final u = data[1] as Map<String, dynamic>;
+        final s = a['stats'] as Map<String, dynamic>;
+        final events = (a['events'] as List).cast<Map<String, dynamic>>();
+        return AdminPage(
+          title: 'User Activity',
+          subtitle: '${u['name']}  |  ${u['internalId']}',
+          showBack: true,
+          onRefresh: () => setState(() => _reload++),
+          actions: [
+            PopupMenuButton<int>(
+              initialValue: _days,
+              onSelected: (d) => setState(() => _days = d),
+              itemBuilder: (_) => [for (final d in const [1, 7, 30, 90]) PopupMenuItem(value: d, child: Text(d == 1 ? 'Last 24 hours' : 'Last $d days'))],
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                onPressed: null,
+                icon: const Icon(Icons.date_range),
+                label: Text(_days == 1 ? 'Last 24 hours' : 'Last $_days days'),
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        const AdminFilterBar(hint: 'Search activity', filters: ['All', 'Auth', 'Messages', 'Files', 'Security']),
-        PanelCard(
-          title: 'Timeline',
-          child: Column(
-            children: [
-              for (final e in _events)
-                ListTile(
-                  leading: AppAvatar(icon: e.$1, size: 40),
-                  title: Text(e.$2, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(e.$3),
-                  trailing: Text(e.$4, style: TextStyle(color: context.palette.textSecondary, fontSize: 12)),
-                ),
-            ],
-          ),
-        ),
-      ],
+          children: [
+            ResponsiveGrid(
+              minItemWidth: 180,
+              children: [
+                StatCard(icon: Icons.login, label: 'Logins', value: fmtNum(s['logins'])),
+                StatCard(icon: Icons.forum_outlined, label: 'Messages', value: fmtNum(s['messages'])),
+                StatCard(icon: Icons.shortcut, label: 'Forwards', value: fmtNum(s['forwards'])),
+                StatCard(icon: Icons.gpp_maybe_outlined, label: 'Violations', value: fmtNum(s['violations'])),
+              ],
+            ),
+            const SizedBox(height: 16),
+            AdminFilterBar(
+              showSearch: false,
+              filters: const {'All': 'all', 'Auth': 'auth', 'Messages': 'messages', 'Files': 'files', 'Security': 'security'},
+              selected: _type,
+              onChanged: (t) => setState(() => _type = t),
+            ),
+            PanelCard(
+              title: 'Timeline',
+              child: Column(
+                children: [
+                  for (final e in events)
+                    ListTile(
+                      leading: AppAvatar(icon: _icons[e['icon']] ?? Icons.history, size: 40),
+                      title: Text('${e['title']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: (e['detail'] as String?)?.isNotEmpty == true ? Text('${e['detail']}') : null,
+                      trailing: Text(fmtDateTime(e['at']), style: TextStyle(color: context.palette.textSecondary, fontSize: 12)),
+                    ),
+                  if (events.isEmpty) const ListTile(title: Text('No activity in this period')),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

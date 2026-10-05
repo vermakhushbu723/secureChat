@@ -31,8 +31,47 @@ class _LoginScreenState extends State<LoginScreen> {
   Timer? _timer;
   int _seconds = 0;
 
-  static final _mobilePattern = RegExp(r'^(\+?91)?0?[6-9]\d{9}$|^\+\d{8,15}$');
-  static final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$');
+  /// Indian mobile number: exactly 10 digits starting with 6, 7, 8 or 9.
+  static final _mobilePattern = RegExp(r'^[6-9]\d{9}$');
+  static final _emailPattern = RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$');
+
+  @override
+  void initState() {
+    super.initState();
+    // Live validation: the error under the field and the button follow every key press.
+    for (final c in [_mobile, _email, _code]) {
+      c.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  bool get _mobileValid => _mobilePattern.hasMatch(_mobileValue);
+  bool get _emailValid => _email.text.trim().length <= 100 && _emailPattern.hasMatch(_email.text.trim());
+  bool get _codeValid => RegExp(r'^\d{6}$').hasMatch(_code.text.trim());
+
+  bool get _stepValid => switch (_step) {
+    _Step.mobile => _mobileValid,
+    _Step.email => _emailValid,
+    _Step.code => _codeValid,
+  };
+
+  /// Error shown under the field while typing (null when empty or valid).
+  String? get _liveError {
+    switch (_step) {
+      case _Step.mobile:
+        final v = _mobileValue;
+        if (v.isEmpty || _mobileValid) return null;
+        if (!RegExp(r'^[6-9]').hasMatch(v)) return 'Mobile number must start with 6, 7, 8 or 9';
+        return 'Enter all 10 digits (${v.length}/10)';
+      case _Step.email:
+        final v = _email.text.trim();
+        if (v.isEmpty || _emailValid) return null;
+        return 'Enter a valid email ID, like name@gmail.com';
+      case _Step.code:
+        return null;
+    }
+  }
 
   @override
   void dispose() {
@@ -67,10 +106,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_loading) return;
     switch (_step) {
       case _Step.mobile:
-        if (!_mobilePattern.hasMatch(_mobileValue)) return setState(() => _error = 'Enter a valid 10 digit mobile number');
+        if (!_mobileValid) return setState(() => _error = 'Enter a valid 10 digit mobile number');
         _go(_Step.email);
       case _Step.email:
-        if (!_emailPattern.hasMatch(_email.text.trim())) return setState(() => _error = 'Enter a valid email ID');
+        if (!_emailValid) return setState(() => _error = 'Enter a valid email ID');
         await _sendCode();
       case _Step.code:
         await _verify();
@@ -195,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
               _Step.code => 'Verify',
             },
             loading: _loading,
-            onPressed: _loading ? null : _next,
+            onPressed: _loading || !_stepValid ? null : _next,
           ),
         ),
       ),
@@ -210,9 +249,19 @@ class _LoginScreenState extends State<LoginScreen> {
         autofocus: true,
         keyboardType: TextInputType.phone,
         textInputAction: TextInputAction.next,
-        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]'))],
+        // Digits only, at most 10 (the +91 country code is fixed).
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+        autofillHints: const [AutofillHints.telephoneNumberNational],
         onSubmitted: (_) => _next(),
-        decoration: const InputDecoration(labelText: 'Mobile number', hintText: '98765 43210', prefixIcon: Icon(Icons.phone_outlined), prefixText: '+91  '),
+        decoration: InputDecoration(
+          labelText: 'Mobile number',
+          hintText: '9876543210',
+          prefixIcon: const Icon(Icons.phone_outlined),
+          prefixText: '+91  ',
+          errorText: _liveError,
+          suffixIcon: _mobileValid ? Icon(Icons.check_circle, color: context.palette.success) : null,
+          counterText: '${_mobileValue.length}/10',
+        ),
       ),
       _Step.email => TextField(
         controller: _email,
@@ -221,8 +270,17 @@ class _LoginScreenState extends State<LoginScreen> {
         keyboardType: TextInputType.emailAddress,
         textInputAction: TextInputAction.send,
         autofillHints: const [AutofillHints.email],
+        // No spaces, at most 100 characters.
+        inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s')), LengthLimitingTextInputFormatter(100)],
+        autocorrect: false,
         onSubmitted: (_) => _next(),
-        decoration: const InputDecoration(labelText: 'Email ID', hintText: 'you@example.com', prefixIcon: Icon(Icons.mail_outline)),
+        decoration: InputDecoration(
+          labelText: 'Email ID',
+          hintText: 'you@example.com',
+          prefixIcon: const Icon(Icons.mail_outline),
+          errorText: _liveError,
+          suffixIcon: _emailValid ? Icon(Icons.check_circle, color: context.palette.success) : null,
+        ),
       ),
       _Step.code => TextField(
         controller: _code,

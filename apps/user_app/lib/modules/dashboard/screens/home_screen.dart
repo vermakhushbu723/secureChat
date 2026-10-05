@@ -76,6 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<DmUser> _people = const [];
   bool _searchingPeople = false;
 
+  /// Admin Search Permissions: why people search is off (shown instead of results).
+  String? _peopleOff;
+
   @override
   void initState() {
     super.initState();
@@ -116,9 +119,19 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     try {
       final users = await DirectRepository.searchUsers(q);
-      if (mounted && q == _peopleQuery) setState(() => _people = users);
-    } on ApiException catch (_) {
-      if (mounted && q == _peopleQuery) setState(() => _people = const []);
+      if (mounted && q == _peopleQuery) {
+        setState(() {
+          _people = users;
+          _peopleOff = null;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted && q == _peopleQuery) {
+        setState(() {
+          _people = const [];
+          _peopleOff = e.code == 'SEARCH_DISABLED' ? e.message : null;
+        });
+      }
     } finally {
       if (mounted && q == _peopleQuery) setState(() => _searchingPeople = false);
     }
@@ -317,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                    child: Text('No one found. Try a name, business name, mobile number or email ID.', style: TextStyle(color: p.textMuted, fontSize: 13)),
+                    child: Text(_peopleOff ?? 'No one found. Try a name, business name, mobile number or email ID.', style: TextStyle(color: p.textMuted, fontSize: 13)),
                   ),
                 ),
               SliverList.builder(

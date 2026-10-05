@@ -291,6 +291,14 @@ class _SettingsFormState extends State<_SettingsForm> {
                       ),
                       const Divider(indent: 56),
                       SwitchListTile(
+                        secondary: const Icon(Icons.person_search_outlined),
+                        title: const Text('Members can search members'),
+                        subtitle: const Text('Off: members cannot search the member list (admins still can)'),
+                        value: _s.memberSearch,
+                        onChanged: (v) => setState(() => _s.memberSearch = v),
+                      ),
+                      const Divider(indent: 56),
+                      SwitchListTile(
                         secondary: const Icon(Icons.volume_off_outlined),
                         title: const Text('Mute group (admins only can post)'),
                         value: _s.muteGroup,

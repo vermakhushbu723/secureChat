@@ -28,6 +28,9 @@ class _GroupComposerState extends State<GroupComposer> {
   late final _focus = FocusNode(onKeyEvent: _onKey);
   bool _hasText = false;
   bool _showEmoji = false;
+
+  /// Why the text can not be sent (numbers / blocked keyword); Send disabled while set.
+  String? _blocked;
   String? _editingId;
   MessageVisibility _visibility = Session.defaultVisibility.value;
 
@@ -40,6 +43,7 @@ class _GroupComposerState extends State<GroupComposer> {
   void initState() {
     super.initState();
     chat.addListener(_onChatChanged);
+    BlockedTerms.instance.version.addListener(_checkBlocked);
     _focus.addListener(() {
       if (_focus.hasFocus && _showEmoji) setState(() => _showEmoji = false);
     });
@@ -53,6 +57,7 @@ class _GroupComposerState extends State<GroupComposer> {
       _text.text = editing.text;
       _hasText = true;
       _focus.requestFocus();
+      _checkBlocked();
     }
     if (mounted) setState(() {});
   }
@@ -60,6 +65,7 @@ class _GroupComposerState extends State<GroupComposer> {
   @override
   void dispose() {
     chat.removeListener(_onChatChanged);
+    BlockedTerms.instance.version.removeListener(_checkBlocked);
     _text.dispose();
     _focus.dispose();
     super.dispose();
@@ -74,19 +80,34 @@ class _GroupComposerState extends State<GroupComposer> {
   }
 
   void _changed(String v) {
+    // Mobile number protection: the number is removed from the box as soon as it is typed.
+    if (PhoneGuard.blocks(v)) {
+      v = PhoneGuard.strip(v);
+      _text.value = TextEditingValue(text: v, selection: TextSelection.collapsed(offset: v.length));
+      showNumberRemoved(context);
+    }
     final has = v.trim().isNotEmpty;
     if (has != _hasText) setState(() => _hasText = has);
+    _checkBlocked();
     chat.onComposerChanged(v);
+  }
+
+  void _checkBlocked() {
+    final hit = sendBlockReason(_text.text, 'groups');
+    if (hit != _blocked && mounted) setState(() => _blocked = hit);
   }
 
   Future<void> _send() async {
     final text = _text.text;
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || _blocked != null) return;
     _text.clear();
     setState(() => _hasText = false);
     final blocked = await chat.sendText(text, visibility: _visibility);
     if (blocked != null && mounted) {
-      if (blocked.isContent) _text.text = text; // let the user edit it
+      if (blocked.isContent) {
+        _text.text = text; // let the user edit it
+        _checkBlocked();
+      }
       await GroupSender.handle(context, blocked);
     }
   }
@@ -236,6 +257,7 @@ class _GroupComposerState extends State<GroupComposer> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (chat.replyTo != null || chat.editing != null) _ContextBar(chat: chat, onClose: _closeContext),
+            if (_blocked != null) BlockedTextBar(message: _blocked!),
             ListenableBuilder(
               listenable: MessageDraft.instance,
               builder: (context, _) {
@@ -377,9 +399,11 @@ class _GroupComposerState extends State<GroupComposer> {
           height: 44,
           child: IconButton.filled(
             color: Colors.white,
-            tooltip: _hasText || editing ? 'Send' : 'Voice message',
-            icon: Icon(editing ? Icons.check : (_hasText || !canMedia ? Icons.send : Icons.mic_none)),
-            onPressed: _hasText || editing
+            tooltip: _blocked != null ? 'Can not send' : (_hasText || editing ? 'Send' : 'Voice message'),
+            icon: Icon(_blocked != null ? Icons.block : (editing ? Icons.check : (_hasText || !canMedia ? Icons.send : Icons.mic_none))),
+            onPressed: _blocked != null
+                ? null
+                : _hasText || editing
                 ? _send
                 : canMedia
                 ? () => context.push(AppRoutes.voiceMessageOf(chat.groupId))

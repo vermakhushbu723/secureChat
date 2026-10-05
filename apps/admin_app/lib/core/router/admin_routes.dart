@@ -14,6 +14,7 @@ class AdminRoutes {
   static const userActivity = '/users/:userId/activity';
   static const userLocation = '/users/:userId/location';
   static const blockedUsers = '/blocked-users';
+  static const searchPermissions = '/search-permissions';
 
   static String userDetailsOf(String id) => '/users/$id';
   static String userActivityOf(String id) => '/users/$id/activity';
@@ -46,6 +47,7 @@ class AdminRoutes {
   static const messages = '/messages';
   static const forwardChains = '/forward-chains';
   static const moderation = '/content-moderation';
+  static const blockedKeywords = '/blocked-keywords';
   static const numberFilter = '/number-filter';
   static const abuseFilter = '/abuse-filter';
   static const security = '/security-settings';

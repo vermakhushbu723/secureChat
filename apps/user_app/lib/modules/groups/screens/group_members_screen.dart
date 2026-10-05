@@ -152,7 +152,8 @@ class _MembersState extends State<_Members> {
   @override
   Widget build(BuildContext context) {
     final d = _detail;
-    final members = _members.where((m) => _query.isEmpty || m.displayName.toLowerCase().contains(_query.toLowerCase())).toList();
+    final canSearch = d?.me.canSearchMembers ?? true;
+    final members = _members.where((m) => !canSearch || _query.isEmpty || m.displayName.toLowerCase().contains(_query.toLowerCase())).toList();
     final showLocation = d != null &&
         d.settings.locationRequirement != LocationRequirement.off &&
         (d.settings.locationVisibility == LocationVisibility.groupMembers || (d.settings.locationVisibility == LocationVisibility.adminOnly && d.me.isAdmin));
@@ -182,7 +183,9 @@ class _MembersState extends State<_Members> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: AppSearchField(hint: 'Search by name', onChanged: (v) => setState(() => _query = v.trim())),
+                      child: canSearch
+                          ? AppSearchField(hint: 'Search by name', onChanged: (v) => setState(() => _query = v.trim()))
+                          : InfoBanner(icon: Icons.search_off, message: d?.me.memberSearchBlockedReason ?? 'Member search is turned off in this group.'),
                     ),
                     const Padding(
                       padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
