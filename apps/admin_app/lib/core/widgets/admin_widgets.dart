@@ -566,7 +566,7 @@ List<MapPin> pinsFor(List<({double lat, double lng, String label})> points, {Str
   double norm(double v, double min, double max) => max - min < 1e-6 ? 0.5 : 0.12 + 0.76 * (v - min) / (max - min);
   return [
     for (final p in points)
-      MapPin(dx: norm(p.lng, minLng, maxLng), dy: 1 - norm(p.lat, minLat, maxLat), label: p.label, isMe: p.label == meLabel),
+      MapPin(dx: norm(p.lng, minLng, maxLng), dy: 1 - norm(p.lat, minLat, maxLat), label: p.label, isMe: p.label == meLabel, lat: p.lat, lng: p.lng),
   ];
 }
 

@@ -138,7 +138,7 @@ class _ScreenState extends State<_Screen> {
         items: [
           GestureDetector(
             onTap: () => context.push(AppRoutes.mapView),
-            child: MapPlaceholder(height: 260, showControls: true, pins: [if (p != null) const MapPin(dx: 0.5, dy: 0.55, label: 'You', isMe: true)]),
+            child: MapPlaceholder(height: 260, interactive: false, pins: [if (p != null) MapPin(dx: 0.5, dy: 0.55, label: 'You', isMe: true, lat: p.latitude, lng: p.longitude)]),
           ),
           const SizedBox(height: 16),
           if (_error != null) ...[

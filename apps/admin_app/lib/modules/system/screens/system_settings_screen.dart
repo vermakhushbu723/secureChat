@@ -42,8 +42,11 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
   Future<void> _save() async {
     if (_changes['maintenance'] == true && !await context.confirm(title: 'Turn on maintenance mode?', message: 'The app stops working for every user until you turn it off.', confirmLabel: 'Turn on', danger: true)) return;
     if (!mounted) return;
+    final maps = _changes.containsKey('mapsEnabled') || _changes.containsKey('mapsApiKey');
     final r = await runAction(context, () => AdminApi.put('/settings/system', Map<String, Object?>.from(_changes)), success: 'System settings saved');
-    if (r != null) await _load();
+    if (r == null) return;
+    if (maps) await AdminApi.loadMapConfig();
+    await _load();
   }
 
   Widget _drop<T>(String key, List<T> items, String Function(T) label) => DropdownButton<T>(
@@ -128,6 +131,43 @@ class _AdminSystemSettingsScreenState extends State<AdminSystemSettingsScreen> {
                           if (RegExp(r'^\d+\.\d+\.\d+$').hasMatch(v.trim())) _set('minAppVersion', v.trim());
                         },
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            PanelCard(
+              title: 'Google Maps',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SettingSwitch(
+                    icon: Icons.map_outlined,
+                    title: 'Show Google Maps',
+                    subtitle: 'User app (web + Android) and admin location screens. Off = simple drawn map',
+                    value: _v('mapsEnabled') != false,
+                    onChanged: (v) => _set('mapsEnabled', v),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: TextFormField(
+                      key: ValueKey('mapkey${_s!['mapsApiKey']}'),
+                      initialValue: '${_v('mapsApiKey') ?? ''}',
+                      maxLength: 200,
+                      decoration: const InputDecoration(
+                        labelText: 'Maps JavaScript API key',
+                        hintText: 'AIza...',
+                        helperText: 'Empty = the key in the server .env (GOOGLE_MAPS_API_KEY)',
+                        prefixIcon: Icon(Icons.key_outlined),
+                      ),
+                      onChanged: (v) => _set('mapsApiKey', v.trim()),
+                    ),
+                  ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: MapConfig.enabled,
+                    builder: (context, on, _) => ListTile(
+                      leading: Icon(on ? Icons.check_circle_outline : Icons.info_outline, color: on ? context.palette.success : context.palette.textSecondary),
+                      title: Text(on ? 'Google Maps is active' : 'Google Maps is off (no key or turned off)'),
                     ),
                   ),
                 ],

@@ -221,6 +221,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? Text('Resend code in 0:${_seconds.toString().padLeft(2, '0')}', style: TextStyle(color: p.textSecondary))
                     : TextButton.icon(onPressed: _loading ? null : _sendCode, icon: const Icon(Icons.refresh), label: const Text('Resend code')),
               ),
+              if (_emailed) ...[
+                const SizedBox(height: 8),
+                InfoBanner(
+                  icon: Icons.mark_email_read_outlined,
+                  message: 'We emailed a 6 digit code to ${_email.text.trim()}. Check your Inbox and the Spam / Promotions folder. It expires in 5 minutes.',
+                ),
+              ],
               if (_devCode != null && !_emailed) ...[
                 const SizedBox(height: 8),
                 InfoBanner(icon: Icons.developer_mode, message: 'Test mode: email sending is not connected yet, so the code is filled in for you ($_devCode).'),

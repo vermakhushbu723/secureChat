@@ -1,28 +1,86 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_palette.dart';
+import 'live_map/live_map_frame_stub.dart'
+    if (dart.library.js_interop) 'live_map/live_map_frame_web.dart'
+    if (dart.library.io) 'live_map/live_map_frame_io.dart';
 
 class MapPin {
-  const MapPin({required this.dx, required this.dy, required this.label, this.isMe = false});
+  const MapPin({required this.dx, required this.dy, required this.label, this.isMe = false, this.lat, this.lng});
 
-  /// Relative position 0..1 inside the map.
+  /// Relative position 0..1 inside the drawn map.
   final double dx;
   final double dy;
   final String label;
   final bool isMe;
+
+  /// Real coordinates: shown on Google Maps when the map is set up.
+  final double? lat;
+  final double? lng;
+
+  bool get hasCoords => lat != null && lng != null;
 }
 
-/// Lightweight drawn map used until a real map SDK is plugged in.
+/// Google Maps for the apps. Each app sets [embedUrl] (the API's /maps/embed page) and
+/// [enabled] from GET /config (admin System Settings -> Google Maps).
+class MapConfig {
+  MapConfig._();
+
+  static String embedUrl = '';
+  static final enabled = ValueNotifier<bool>(false);
+
+  /// Web, Android and iOS can show the map page.
+  static bool get supported => kIsWeb || defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
+}
+
+/// Map with pins: Google Maps when it is set up and the pins have coordinates, otherwise
+/// a lightweight drawn map. [interactive] maps can be dragged / zoomed ([fullScreen]: freely,
+/// otherwise ctrl + scroll); other maps are previews and let taps through.
 class MapPlaceholder extends StatelessWidget {
-  const MapPlaceholder({super.key, this.pins = const [], this.height, this.radius = 16, this.showControls = false});
+  const MapPlaceholder({super.key, this.pins = const [], this.height, this.radius = 16, this.showControls = false, bool? interactive, this.fullScreen = false, this.zoom})
+    : interactive = interactive ?? showControls;
 
   final List<MapPin> pins;
   final double? height;
   final double radius;
   final bool showControls;
+  final bool interactive;
+  final bool fullScreen;
+  final int? zoom;
+
+  static String _hex(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: MapConfig.enabled,
+      builder: (context, on, _) {
+        if (!on || !MapConfig.supported || MapConfig.embedUrl.isEmpty || pins.isEmpty || !pins.every((p) => p.hasCoords)) return _drawn(context);
+        final data = jsonEncode({
+          'pins': [for (final p in pins) {'lat': p.lat, 'lng': p.lng, 'label': p.label, 'me': p.isMe}],
+          'mode': !interactive ? 'static' : fullScreen ? 'full' : 'embed',
+          'color': _hex(context.colors.primary),
+          'meColor': _hex(context.palette.info),
+          'zoom': ?zoom,
+        });
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: SizedBox(
+            height: height,
+            child: ColoredBox(
+              color: context.palette.surfaceAlt,
+              child: LiveMapFrame(url: MapConfig.embedUrl, data: data, interactive: interactive),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _drawn(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: SizedBox(

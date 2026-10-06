@@ -4,7 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/core.dart';
 
-/// Device location + projection of real coordinates onto the drawn map.
+/// Device location + map pins (real coordinates for Google Maps, projected for the drawn map).
 class Geo {
   Geo._();
 
@@ -32,7 +32,7 @@ class Geo {
   /// Fits every point into the 0..1 map area with a margin.
   static List<MapPin> pins(List<({double lat, double lng, String label, bool isMe})> points) {
     if (points.isEmpty) return const [];
-    if (points.length == 1) return [MapPin(dx: 0.5, dy: 0.5, label: points.first.label, isMe: points.first.isMe)];
+    if (points.length == 1) return [MapPin(dx: 0.5, dy: 0.5, label: points.first.label, isMe: points.first.isMe, lat: points.first.lat, lng: points.first.lng)];
     final lats = points.map((p) => p.lat);
     final lngs = points.map((p) => p.lng);
     final minLat = lats.reduce(math.min), maxLat = lats.reduce(math.max);
@@ -46,6 +46,8 @@ class Geo {
           dy: 0.12 + 0.76 * (1 - (p.lat - minLat) / spanLat),
           label: p.label,
           isMe: p.isMe,
+          lat: p.lat,
+          lng: p.lng,
         ),
     ];
   }

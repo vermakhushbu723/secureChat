@@ -24,11 +24,11 @@ final screens = <String>[
   AdminRoutes.abuseFilter, AdminRoutes.security,
   // Reports & system
   AdminRoutes.reports, AdminRoutes.analytics, AdminRoutes.notifications, AdminRoutes.auditLogs, AdminRoutes.staff,
-  AdminRoutes.systemSettings,
+  AdminRoutes.systemSettings, AdminRoutes.emailAccounts,
 ];
 
 void main() {
-  test('screen count', () => expect(screens.toSet().length, 33)); // 32 screens, group form used for create + edit
+  test('screen count', () => expect(screens.toSet().length, 34)); // 33 screens, group form used for create + edit
 
   testWidgets('guest is redirected to login', (tester) async {
     AdminSession.loggedIn.value = false;

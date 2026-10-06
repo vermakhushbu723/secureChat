@@ -59,4 +59,5 @@ class AdminRoutes {
   static const auditLogs = '/audit-logs';
   static const staff = '/staff';
   static const systemSettings = '/system-settings';
+  static const emailAccounts = '/email-accounts';
 }

@@ -89,6 +89,7 @@ class _MapState extends State<_Map> {
                 : MapPlaceholder(
                     radius: 0,
                     showControls: true,
+                    fullScreen: true,
                     pins: Geo.pins([for (final m in shown) (lat: m.lat!, lng: m.lng!, label: m.isMe ? 'You' : m.displayName, isMe: m.isMe || m.userId == _selected)]),
                   ),
           ),

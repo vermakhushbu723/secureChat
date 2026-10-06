@@ -482,7 +482,10 @@ class _LocationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 120, child: MapPlaceholder(radius: 8, pins: [MapPin(dx: 0.5, dy: 0.55, label: 'Pin', isMe: true)])),
+            SizedBox(
+              height: 120,
+              child: MapPlaceholder(radius: 8, pins: [MapPin(dx: 0.5, dy: 0.55, label: location.name ?? 'Pin', isMe: true, lat: location.lat, lng: location.lng)]),
+            ),
             const SizedBox(height: 6),
             Row(
               children: [

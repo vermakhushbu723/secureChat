@@ -10,6 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Google Maps page: iframe on web (package:web), WebView on Android.
+  web: ^1.1.1
+  webview_flutter: ^4.13.0
 
 dev_dependencies:
   flutter_test:

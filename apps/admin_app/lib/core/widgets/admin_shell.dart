@@ -61,6 +61,7 @@ const _sections = [
     _NavItem(Icons.history, 'Audit Logs', AdminRoutes.auditLogs, 'settings'),
     _NavItem(Icons.badge_outlined, 'Admin / Staff', AdminRoutes.staff),
     _NavItem(Icons.settings_outlined, 'System Settings', AdminRoutes.systemSettings, 'settings'),
+    _NavItem(Icons.alternate_email, 'Email Accounts', AdminRoutes.emailAccounts, 'settings'),
   ]),
 ];
 

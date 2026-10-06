@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared/shared.dart' show MapConfig;
 
 /// Error returned by the admin API (`{ ok: false, error: { code, message } }`).
 class ApiException implements Exception {
@@ -30,6 +31,15 @@ class AdminApi {
   }
 
   static String? token;
+
+  /// Google Maps on the location screens: on when the API has a maps key (System Settings -> Google Maps).
+  static Future<void> loadMapConfig() async {
+    MapConfig.embedUrl = '$baseUrl/api/v1/maps/embed';
+    try {
+      final r = await _dio.get<Map<String, dynamic>>('$baseUrl/api/v1/config');
+      MapConfig.enabled.value = (r.data?['data'] as Map?)?['maps'] == true;
+    } catch (_) {}
+  }
 
   /// Called on 401 (session expired / revoked) so the app can go back to login.
   static VoidCallback? onUnauthorized;
