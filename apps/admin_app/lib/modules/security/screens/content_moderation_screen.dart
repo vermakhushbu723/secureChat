@@ -64,6 +64,21 @@ class _AdminContentModerationScreenState extends State<AdminContentModerationScr
             ),
             const SizedBox(height: 16),
             PanelCard(
+              title: 'Links in groups',
+              child: SettingSwitch(
+                icon: Icons.link_off,
+                title: 'Block links in every group',
+                subtitle: 'http / https / www / any domain (example.com, abc.in, "site dot com") - for every member, group admins too. '
+                    'The app shows "Can not send" while a link is typed.',
+                value: cs['groupLinksBlocked'] != false,
+                onChanged: (v) async {
+                  final r = await runAction(context, () => AdminApi.put('/settings/content', {'groupLinksBlocked': v}), success: v ? 'Links are blocked in groups' : 'Links allowed in groups (unless the group blocks them)');
+                  if (r != null) setState(() => _reload++);
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            PanelCard(
               title: 'Content Control (global - applies in every group, even when the group turned the rule off)',
               child: Column(
                 children: [

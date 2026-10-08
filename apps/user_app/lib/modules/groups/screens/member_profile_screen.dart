@@ -63,6 +63,19 @@ class _Profile extends StatelessWidget {
               ],
             ),
           ],
+          if (m.hasLocation) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: () => context.push(AppRoutes.mapViewOf(groupId, userId: m.userId)),
+                child: MapPlaceholder(
+                  height: 170,
+                  pins: [MapPin(dx: 0.5, dy: 0.55, label: m.displayName, isMe: false, lat: m.locationLat, lng: m.locationLng)],
+                ),
+              ),
+            ),
+          ],
           const SectionHeader('In this group'),
           GroupedCard(
             children: [
@@ -78,9 +91,12 @@ class _Profile extends StatelessWidget {
                 AppTile(
                   icon: Icons.location_on_outlined,
                   title: 'View location',
-                  subtitle: m.locationPlace ?? '${m.locationLat!.toStringAsFixed(4)}, ${m.locationLng!.toStringAsFixed(4)}',
+                  subtitle: '${m.locationPlace ?? '${m.locationLat!.toStringAsFixed(4)}, ${m.locationLng!.toStringAsFixed(4)}'}'
+                      '${m.locationUpdatedAt == null ? '' : '  |  ${formatListTime(m.locationUpdatedAt!)}'}',
                   onTap: () => context.push(AppRoutes.mapViewOf(groupId, userId: m.userId)),
-                ),
+                )
+              else if (m.canSeeLocation && !m.isMe)
+                const InfoRow(label: 'Location', value: 'Not shared yet', icon: Icons.location_off_outlined),
               AppTile(
                 icon: Icons.perm_media_outlined,
                 title: 'Shared media in group',

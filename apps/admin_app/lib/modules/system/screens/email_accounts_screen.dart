@@ -119,6 +119,89 @@ class _AdminEmailAccountsScreenState extends State<AdminEmailAccountsScreen> {
     _refresh();
   }
 
+  /// Edit everything of one mailbox: email, password (empty = keep), server, port, daily limit.
+  Future<void> _edit(Map<String, dynamic> a) async {
+    final email = TextEditingController(text: '${a['email']}');
+    final pass = TextEditingController();
+    final host = TextEditingController(text: '${a['host']}');
+    final limit = TextEditingController(text: '${a['dailyLimit']}');
+    var port = (a['port'] as num?)?.toInt() ?? 465;
+    var show = false;
+    final body = await showDialog<Map<String, Object?>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text('Edit mailbox'),
+          content: SizedBox(
+            width: 460,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppTextField(label: 'Email address', controller: email, keyboardType: TextInputType.emailAddress),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pass,
+                  obscureText: !show,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    hintText: 'Leave empty to keep the current password',
+                    suffixIcon: IconButton(icon: Icon(show ? Icons.visibility_off : Icons.visibility), onPressed: () => setD(() => show = !show)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(flex: 3, child: AppTextField(label: 'SMTP server', controller: host)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<int>(
+                        initialValue: port == 587 ? 587 : 465,
+                        decoration: const InputDecoration(labelText: 'Port'),
+                        items: const [DropdownMenuItem(value: 465, child: Text('465 (SSL)')), DropdownMenuItem(value: 587, child: Text('587 (TLS)'))],
+                        onChanged: (v) => setD(() => port = v!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                AppTextField(label: 'Emails per day', controller: limit, keyboardType: TextInputType.number),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, {
+                if (email.text.trim().toLowerCase() != a['email']) 'email': email.text.trim().toLowerCase(),
+                if (pass.text.isNotEmpty) 'password': pass.text,
+                if (host.text.trim() != a['host']) 'host': host.text.trim(),
+                if (port != a['port']) 'port': port,
+                if ((int.tryParse(limit.text.trim()) ?? a['dailyLimit']) != a['dailyLimit']) 'dailyLimit': int.tryParse(limit.text.trim()),
+              }),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    for (final c in [email, pass, host, limit]) {
+      c.dispose();
+    }
+    if (body == null || body.isEmpty || !mounted) return;
+    await _patch(a, body, '${a['email']} saved');
+  }
+
+  /// One password for every mailbox (Hostinger mailboxes made with the same password).
+  Future<void> _passwordAll(int count) async {
+    final p = await askText(context, title: 'Same password for all $count mailboxes', label: 'Password', confirm: 'Save');
+    if (p == null || p.isEmpty || !mounted) return;
+    final r = await runAction<Map<String, dynamic>>(context, () => AdminApi.post('/mail-accounts/password-all', {'password': p}));
+    if (r == null || !mounted) return;
+    context.showSnack('Password saved for ${r['updated']} mailboxes. Use Test to check each one.');
+    _refresh();
+  }
+
   Future<void> _patch(Map<String, dynamic> a, Map<String, Object?> body, String done) async {
     final r = await runAction(context, () => AdminApi.patch('/mail-accounts/${a['id']}', body), success: done);
     if (r != null) _refresh();
@@ -126,6 +209,8 @@ class _AdminEmailAccountsScreenState extends State<AdminEmailAccountsScreen> {
 
   Future<void> _menu(Map<String, dynamic> a, String action) async {
     switch (action) {
+      case 'edit':
+        await _edit(a);
       case 'password':
         final p = await askText(context, title: 'New password for ${a['email']}', label: 'Password', confirm: 'Save');
         if (p != null && p.isNotEmpty) await _patch(a, {'password': p}, 'Password saved');
@@ -158,7 +243,11 @@ class _AdminEmailAccountsScreenState extends State<AdminEmailAccountsScreen> {
           title: 'Email Accounts',
           subtitle: 'Mailboxes that send OTP codes and notices - they take turns, a busy one is skipped automatically',
           onRefresh: _refresh,
-          actions: [FilledButton.icon(style: FilledButton.styleFrom(minimumSize: const Size(0, 44)), onPressed: _add, icon: const Icon(Icons.add), label: const Text('Add mailboxes'))],
+          actions: [
+            if (accounts.isNotEmpty)
+              OutlinedButton.icon(style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)), onPressed: () => _passwordAll(accounts.length), icon: const Icon(Icons.password), label: const Text('Same password for all')),
+            FilledButton.icon(style: FilledButton.styleFrom(minimumSize: const Size(0, 44)), onPressed: _add, icon: const Icon(Icons.add), label: const Text('Add mailboxes')),
+          ],
           children: [
             ResponsiveGrid(
               minItemWidth: 200,
@@ -183,7 +272,7 @@ class _AdminEmailAccountsScreenState extends State<AdminEmailAccountsScreen> {
               rows: [
                 for (final a in accounts)
                   [
-                    Text('${a['email']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    InkWell(onTap: () => _edit(a), child: Text('${a['email']}', style: const TextStyle(fontWeight: FontWeight.w600))),
                     Tooltip(
                       message: a['status'] == 'Resting' ? '${a['coolingReason']} - back in ${((a['coolingSeconds'] as num) / 60).ceil()} min' : '',
                       child: StatusChip('${a['status']}', tone: _tone('${a['status']}')),
@@ -209,6 +298,7 @@ class _AdminEmailAccountsScreenState extends State<AdminEmailAccountsScreen> {
                           icon: const Icon(Icons.more_horiz),
                           onSelected: (v) => _menu(a, v),
                           itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'edit', child: Text('Edit')),
                             const PopupMenuItem(value: 'password', child: Text('Change password')),
                             const PopupMenuItem(value: 'limit', child: Text('Daily limit')),
                             if (a['status'] == 'Resting') const PopupMenuItem(value: 'ready', child: Text('Ready now (skip the rest)')),

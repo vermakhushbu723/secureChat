@@ -122,7 +122,7 @@ class GroupRepository {
 
   /// Accepts a full invite URL or just the code.
   static String? codeFrom(String input) {
-    final m = RegExp(r'([A-Za-z]{3}-[A-Za-z0-9]{6})').firstMatch(input.trim());
+    final m = RegExp(r'([A-Za-z]{3}-[A-Za-z0-9]{6,8})').firstMatch(input.trim());
     return m?.group(1)?.toUpperCase();
   }
 

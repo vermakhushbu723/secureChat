@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import 'app.dart';
 import 'core/moderation/blocked_terms.dart';
+import 'core/moderation/link_guard.dart';
 import 'core/network/api_config.dart';
 import 'core/network/auth_service.dart';
 import 'modules/dashboard/screens/settings_screen.dart' show ThemePrefs;
@@ -24,12 +25,15 @@ Future<void> main() async {
   runApp(const UserApp());
   // Google Maps (admin System Settings): on when the API has a maps key.
   MapConfig.embedUrl = '${ApiConfig.apiUrl}/maps/embed';
-  loadMapConfig();
+  loadAppConfig();
 }
 
-Future<void> loadMapConfig() async {
+/// Admin switches the app needs before the first message: Google Maps, links in groups.
+Future<void> loadAppConfig() async {
   try {
     final r = await Dio(BaseOptions(connectTimeout: const Duration(seconds: 15))).get<Map<String, dynamic>>('${ApiConfig.apiUrl}/config');
-    MapConfig.enabled.value = (r.data?['data'] as Map?)?['maps'] == true;
+    final d = (r.data?['data'] as Map?) ?? const {};
+    MapConfig.enabled.value = d['maps'] == true;
+    LinkGuard.groupLinksBlocked = d['groupLinksBlocked'] != false;
   } catch (_) {}
 }

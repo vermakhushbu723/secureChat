@@ -326,6 +326,8 @@ class GroupMe {
     this.plan = 'trial',
     this.canSearchMembers = true,
     this.memberSearchBlockedReason,
+    this.pendingRequests = 0,
+    this.pendingNames = const [],
   });
 
   factory GroupMe.fromJson(Map<String, dynamic> j) {
@@ -346,6 +348,8 @@ class GroupMe {
       plan: j['plan'] as String? ?? 'trial',
       canSearchMembers: j['canSearchMembers'] != false,
       memberSearchBlockedReason: j['memberSearchBlockedReason'] as String?,
+      pendingRequests: (_map(j['pendingRequests'])['count'] as num?)?.toInt() ?? 0,
+      pendingNames: [for (final n in (_map(j['pendingRequests'])['names'] as List? ?? const [])) '$n'],
     );
   }
 
@@ -369,6 +373,10 @@ class GroupMe {
   /// Search Permissions: admin / group admin can turn member search off.
   final bool canSearchMembers;
   final String? memberSearchBlockedReason;
+
+  /// Group admins: join requests waiting for approval (first names for the chat header).
+  final int pendingRequests;
+  final List<String> pendingNames;
 
   bool get isAdmin => role == MemberRole.owner || role == MemberRole.admin;
   bool get isOwner => role == MemberRole.owner;
@@ -448,6 +456,7 @@ class GroupMemberInfo {
     this.locationLat,
     this.locationLng,
     this.locationUpdatedAt,
+    this.canSeeLocation = false,
     this.canManage = false,
     this.phone,
     this.email,
@@ -476,6 +485,7 @@ class GroupMemberInfo {
       locationLat: (loc['lat'] as num?)?.toDouble(),
       locationLng: (loc['lng'] as num?)?.toDouble(),
       locationUpdatedAt: _date(loc['updatedAt']),
+      canSeeLocation: j['canSeeLocation'] == true || loc['lat'] != null,
       canManage: j['canManage'] == true,
       phone: j['phone'] as String?,
       email: j['email'] as String?,
@@ -502,6 +512,9 @@ class GroupMemberInfo {
   final double? locationLat;
   final double? locationLng;
   final DateTime? locationUpdatedAt;
+
+  /// Group setting lets me see this member's location (group admin, or members when allowed).
+  final bool canSeeLocation;
   final bool canManage;
 
   /// Only present when the member turned on "Show mobile number & email".

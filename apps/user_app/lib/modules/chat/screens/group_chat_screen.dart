@@ -291,6 +291,9 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(d.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                if (typing == null && d.me.isAdmin && d.me.pendingRequests > 0)
+                  _JoinRequestsLine(groupId: chat.groupId, count: d.me.pendingRequests, names: d.me.pendingNames)
+                else
                 Text(
                   typing ?? '${d.summary.memberCount} members  |  tap for group info',
                   overflow: TextOverflow.ellipsis,
@@ -301,6 +304,41 @@ class _Header extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Group admins: "2 join requests - Ravi, Amit" in the header, opens the requests list.
+class _JoinRequestsLine extends StatelessWidget {
+  const _JoinRequestsLine({required this.groupId, required this.count, required this.names});
+
+  final String groupId;
+  final int count;
+  final List<String> names;
+
+  @override
+  Widget build(BuildContext context) {
+    final who = names.join(', ') + (count > names.length ? ' +${count - names.length}' : '');
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push(AppRoutes.groupMembersOf(groupId)),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(color: context.palette.warning, borderRadius: BorderRadius.circular(10)),
+            child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              '${count == 1 ? 'join request' : 'join requests'}: $who',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.palette.warning),
             ),
           ),
         ],

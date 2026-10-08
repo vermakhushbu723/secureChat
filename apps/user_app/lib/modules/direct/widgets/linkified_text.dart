@@ -13,7 +13,7 @@ final _emojiOnly = RegExp(
 bool isEmojiOnly(String text) => text.runes.length <= 12 && _emojiOnly.hasMatch(text.trim());
 
 /// Our own links (invite links, chats) open inside the app instead of the browser.
-final _groupLink = RegExp(r'/group/([A-Za-z]{3}-[A-Za-z0-9]{6})');
+final _groupLink = RegExp(r'/group/([A-Za-z]{3}-[A-Za-z0-9]{6,8})');
 const _appHosts = {'prosecurely.online', 'www.prosecurely.online', 'securechat.candledust.online'};
 
 void openLink(BuildContext context, String url) {

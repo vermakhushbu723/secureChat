@@ -94,7 +94,7 @@ class GroupChatController extends ChangeNotifier {
       }),
       ws.on('group:status').where(mine).listen(_onStatus),
       ws.on('group:typing').where(mine).listen(_onTyping),
-      for (final e in const ['group:updated', 'group:me', 'group:member:updated']) ws.on(e).where(mine).listen((_) => refreshDetail()),
+      for (final e in const ['group:updated', 'group:me', 'group:member:updated', 'group:join_request']) ws.on(e).where(mine).listen((_) => refreshDetail()),
       ws.on('group:cleared').where(mine).listen((_) {
         messages.clear();
         _notify();

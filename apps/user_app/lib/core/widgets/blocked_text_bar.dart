@@ -1,13 +1,15 @@
 import 'package:shared/shared.dart';
 
 import '../moderation/blocked_terms.dart';
+import '../moderation/link_guard.dart';
 import '../moderation/phone_guard.dart';
 
 /// Why [text] can not be sent ('direct' = 1-to-1, 'groups'), or null when it can:
-/// mobile numbers / digits (always on for everyone) and admin Blocked Keywords.
+/// mobile numbers / digits (always on for everyone), links in groups and admin Blocked Keywords.
 String? sendBlockReason(String text, String where) {
   if (text.trim().isEmpty) return null;
   if (PhoneGuard.blocks(text)) return 'Numbers and mobile numbers are not allowed.';
+  if (where == 'groups' && LinkGuard.blocksInGroup(text)) return 'Links are not allowed in groups.';
   final term = BlockedTerms.instance.find(text, where);
   if (term != null) return '"$term" is not allowed. Remove it to send.';
   return null;
