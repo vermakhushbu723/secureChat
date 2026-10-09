@@ -10,6 +10,7 @@ import 'package:shared/shared.dart' show AccessType;
 import '../session/session_controller.dart';
 import 'api_client.dart';
 import 'api_config.dart';
+import '../push/push_service.dart';
 import 'socket_service.dart';
 
 /// The logged in account (full profile, only ever seen by its owner).
@@ -280,6 +281,8 @@ class AuthService {
 
   Future<void> logout() async {
     final token = _refresh;
+    // This phone / browser stops getting the account's push notifications.
+    await PushService.instance.unregister();
     await _clear();
     if (token != null) {
       unawaited(_raw.post('/auth/logout', data: {'refreshToken': token}).then((_) {}, onError: (_) {}));

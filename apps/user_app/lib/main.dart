@@ -7,6 +7,7 @@ import 'core/moderation/blocked_terms.dart';
 import 'core/moderation/link_guard.dart';
 import 'core/network/api_config.dart';
 import 'core/network/auth_service.dart';
+import 'core/push/push_service.dart';
 import 'modules/dashboard/screens/settings_screen.dart' show ThemePrefs;
 import 'modules/secure_message/state/message_draft.dart';
 
@@ -23,6 +24,8 @@ Future<void> main() async {
   // Light unless the user picked another theme (Settings -> Chats -> Theme).
   await ThemePrefs.load();
   runApp(const UserApp());
+  // Push notifications for new 1-to-1 and group messages (Firebase).
+  PushService.instance.init();
   // Google Maps (admin System Settings): on when the API has a maps key.
   MapConfig.embedUrl = '${ApiConfig.apiUrl}/maps/embed';
   loadAppConfig();

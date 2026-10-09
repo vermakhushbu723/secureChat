@@ -4,7 +4,7 @@
 /// `flutter run --dart-define=API_URL=https://api.securechat.in`
 /// Shown in Settings / Profile so testers can check which build they are running.
 /// Keep in sync with `version` in pubspec.yaml.
-const appVersion = '1.0.12';
+const appVersion = '1.0.13';
 
 class ApiConfig {
   ApiConfig._();

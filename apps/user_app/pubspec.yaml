@@ -1,7 +1,7 @@
 name: user_app
 description: "SecureChat user app - Android + PWA group chat."
 publish_to: none
-version: 1.0.12+13
+version: 1.0.13+14
 resolution: workspace
 
 environment:
@@ -13,6 +13,8 @@ dependencies:
   dio: ^5.11.1
   emoji_picker_flutter: ^4.5.4
   file_picker: ^13.1.0
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
   flutter:
     sdk: flutter
   flutter_web_plugins:
