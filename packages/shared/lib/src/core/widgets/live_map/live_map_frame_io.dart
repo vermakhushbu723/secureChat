@@ -57,11 +57,9 @@ class _LiveMapFrameState extends State<LiveMapFrame> {
 
   @override
   Widget build(BuildContext context) {
-    final view = WebViewWidget(
-      controller: _controller,
-      // A full map takes drags / pinches before the page scroll.
-      gestureRecognizers: widget.interactive ? {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)} : const {},
-    );
+    // A full map takes drags / pinches before the page scroll.
+    final gestures = widget.interactive ? {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)} : const <Factory<OneSequenceGestureRecognizer>>{};
+    final view = WebViewWidget(controller: _controller, gestureRecognizers: gestures);
     // Preview maps: taps go to the card around the map.
     return widget.interactive ? view : AbsorbPointer(child: view);
   }

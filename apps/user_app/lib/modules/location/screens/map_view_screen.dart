@@ -81,7 +81,10 @@ class _MapState extends State<_Map> {
       if (i > 0) shown.insert(0, shown.removeAt(i));
     }
     return Scaffold(
+      // StackFit.expand: the Scaffold gives the body a loose height, so a plain Stack would only be
+      // as tall as the top bar - the map squeezed into a strip and the member cards at the top.
       body: Stack(
+        fit: StackFit.expand,
         children: [
           Positioned.fill(
             child: !widget.data.allowed
@@ -93,34 +96,38 @@ class _MapState extends State<_Map> {
                     pins: Geo.pins([for (final m in shown) (lat: m.lat!, lng: m.lng!, label: m.isMe ? 'You' : m.displayName, isMe: m.isMe || m.userId == _selected)]),
                   ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Material(
-                    color: context.colors.surface,
-                    shape: const CircleBorder(),
-                    elevation: 2,
-                    child: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.canPop() ? context.pop() : context.go(AppRoutes.home)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Material(
-                      elevation: 2,
-                      borderRadius: BorderRadius.circular(24),
+          // Top bar stays at the top (the Stack fills the screen).
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Material(
                       color: context.colors.surface,
-                      child: AppSearchField(hint: 'Search member or place', onChanged: (v) => setState(() => _search.text = v)),
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.canPop() ? context.pop() : context.go(AppRoutes.home)),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: context.colors.surface,
-                    shape: const CircleBorder(),
-                    elevation: 2,
-                    child: IconButton(icon: const Icon(Icons.refresh), tooltip: 'Refresh', onPressed: widget.reload),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Material(
+                        elevation: 2,
+                        borderRadius: BorderRadius.circular(24),
+                        color: context.colors.surface,
+                        child: AppSearchField(hint: 'Search member or place', onChanged: (v) => setState(() => _search.text = v)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Material(
+                      color: context.colors.surface,
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: IconButton(icon: const Icon(Icons.refresh), tooltip: 'Refresh', onPressed: widget.reload),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -163,8 +170,16 @@ class _MapState extends State<_Map> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(m.isMe ? 'You' : m.displayName, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
-                                        Text(m.placeLabel, style: TextStyle(fontSize: 12, color: context.palette.textSecondary), overflow: TextOverflow.ellipsis),
+                                        Text(
+                                          m.isMe ? 'You' : m.displayName,
+                                          style: const TextStyle(fontWeight: FontWeight.w700),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          m.placeLabel,
+                                          style: TextStyle(fontSize: 12, color: context.palette.textSecondary),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ],
                                     ),
                                   ),

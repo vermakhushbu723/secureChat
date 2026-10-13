@@ -41,6 +41,7 @@ const _sections = [
   _NavSection('Trial & Subscription', [
     _NavItem(Icons.hourglass_bottom, 'Trial Management', AdminRoutes.trials, 'subscriptions'),
     _NavItem(Icons.workspace_premium_outlined, 'Premium Plans', AdminRoutes.plans, 'subscriptions'),
+    _NavItem(Icons.qr_code_2, 'Payments (UPI)', AdminRoutes.payments, 'subscriptions'),
     _NavItem(Icons.more_time, 'Extension Requests', AdminRoutes.extensionRequests, 'subscriptions'),
     _NavItem(Icons.manage_accounts_outlined, 'User Access', AdminRoutes.subscriptions, 'subscriptions'),
   ]),

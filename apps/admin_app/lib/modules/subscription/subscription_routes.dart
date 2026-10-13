@@ -1,6 +1,7 @@
 import '../../core/core.dart';
 import '../../core/router/admin_page.dart';
 import 'screens/extension_requests_screen.dart';
+import 'screens/payments_screen.dart';
 import 'screens/plan_management_screen.dart';
 import 'screens/trial_management_screen.dart';
 import 'screens/user_subscription_screen.dart';
@@ -13,5 +14,6 @@ final List<RouteBase> subscriptionRoutes = [
     path: AdminRoutes.extensionRequests,
     pageBuilder: (_, s) => adminPage(s, const AdminExtensionRequestsScreen()),
   ),
+  GoRoute(path: AdminRoutes.payments, pageBuilder: (_, s) => adminPage(s, const AdminPaymentsScreen())),
   GoRoute(path: AdminRoutes.subscriptions, pageBuilder: (_, s) => adminPage(s, const AdminUserSubscriptionScreen())),
 ];

@@ -100,6 +100,13 @@ class AdminApi {
 
   static Future<T> patch<T>(String path, Object body) => _send(() => _dio.patch(_url(path), data: body, options: _options()));
 
+  /// Multipart upload of one file (field "file").
+  static Future<T> upload<T>(String path, Uint8List bytes, String filename, {String contentType = 'application/octet-stream'}) {
+    final parts = contentType.split('/');
+    final form = FormData.fromMap({'file': MultipartFile.fromBytes(bytes, filename: filename, contentType: DioMediaType(parts.first, parts.last))});
+    return _send(() => _dio.post(_url(path), data: form, options: _options()));
+  }
+
   static Future<T> delete<T>(String path) => _send(() => _dio.delete(_url(path), options: _options()));
 
   /// CSV exports (authenticated download).

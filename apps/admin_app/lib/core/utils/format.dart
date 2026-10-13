@@ -56,6 +56,14 @@ String initialsOf(String? name) {
   return parts.take(2).map((p) => p[0].toUpperCase()).join();
 }
 
+/// 299 INR -> "Rs 299" (other currencies: "299 USD").
+String fmtMoney(Object? amount, Object? currency) {
+  final n = amount is num ? amount : num.tryParse('$amount') ?? 0;
+  final v = n == n.roundToDouble() ? n.toInt().toString() : n.toStringAsFixed(2);
+  final c = '${currency ?? 'INR'}'.toUpperCase();
+  return c == 'INR' ? 'Rs $v' : '$v $c';
+}
+
 String capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
 /// Access type -> label + tone (trial / free / premium / extended / locked / unclaimed).

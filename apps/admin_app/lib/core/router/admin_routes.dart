@@ -38,6 +38,7 @@ class AdminRoutes {
   static const trials = '/trials';
   static const plans = '/plans';
   static const extensionRequests = '/extension-requests';
+  static const payments = '/payments';
   static const subscriptions = '/subscriptions';
 
   // 8. Location Management

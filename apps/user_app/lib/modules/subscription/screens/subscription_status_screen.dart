@@ -1,188 +1,137 @@
 import '../../../core/core.dart';
+import '../../direct/data/direct_models.dart' show formatDayHeader;
+import '../data/subscription_repository.dart';
 
+/// My Subscription: current access (trial / premium / extended / locked), payments sent by UPI
+/// and extension requests, all from the server.
 class SubscriptionStatusScreen extends StatelessWidget {
   const SubscriptionStatusScreen({super.key});
 
-  static const _payments = [
-    ('24 Sep 2026', 'Premium - Monthly', 'Rs 299', 'Paid'),
-    ('24 Aug 2026', 'Premium - Monthly', 'Rs 299', 'Paid'),
-    ('24 Jul 2026', 'Premium - Monthly', 'Rs 299', 'Failed'),
-  ];
+  static String _title(String access) => switch (access) {
+    'premium' => 'Premium',
+    'extended' => 'Trial extended',
+    'trial' => 'Free trial',
+    'free' => 'Free access',
+    _ => 'Trial ended',
+  };
+
+  static String _date(DateTime? d) => d == null ? '-' : formatDayHeader(d);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Subscription')),
-      body: ResponsiveBody(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: context.colors.primary, borderRadius: BorderRadius.circular(18)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.workspace_premium, color: context.colors.onPrimary, size: 30),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Premium',
-                        style: TextStyle(color: context.colors.onPrimary, fontSize: 22, fontWeight: FontWeight.w800),
+    return LoginGate(
+      title: 'My Subscription',
+      child: Scaffold(
+        appBar: AppBar(title: const Text('My Subscription')),
+        body: AsyncView<PlanDetails>(
+          load: SubscriptionRepository.status,
+          builder: (context, p, reload) {
+            final active = !p.locked;
+            final ends = p.access == 'trial' ? p.trialEndsAt : p.until;
+            return ResponsiveBody(
+              child: RefreshIndicator(
+                onRefresh: reload,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: active ? context.colors.primary : context.palette.danger, borderRadius: BorderRadius.circular(18)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(active ? Icons.workspace_premium : Icons.lock_clock, color: Colors.white, size: 30),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _title(p.access),
+                                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                              StatusChip(active ? 'Active' : 'Locked'),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            active ? (ends == null ? 'No end date' : '${p.daysLeft} day${p.daysLeft == 1 ? '' : 's'} left  |  until ${_date(ends)}') : 'Chat is read only. Upgrade to keep chatting.',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 15),
+                          ),
+                        ],
                       ),
-                      const Spacer(),
-                      const StatusChip('Active'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Rs 299 / month', style: TextStyle(color: context.colors.onPrimary, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Next billing on 24 Oct 2026',
-                    style: TextStyle(color: context.colors.onPrimary.withValues(alpha: 0.75)),
-                  ),
-                ],
-              ),
-            ),
-            const SectionHeader('Current access', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
-            Card(
-              child: ValueListenableBuilder<AccessType>(
-                valueListenable: Session.access,
-                builder: (_, a, _) => Column(
-                  children: [
-                    InfoRow(label: 'Access type', value: a.label, icon: Icons.verified_user_outlined),
-                    InfoRow(
-                      label: 'Chat',
-                      value: a == AccessType.locked ? 'Locked / read only' : 'Enabled',
-                      icon: Icons.forum_outlined,
                     ),
-                    const InfoRow(
-                      label: 'Granted by',
-                      value: 'Admin approval',
-                      icon: Icons.admin_panel_settings_outlined,
+                    const SizedBox(height: 16),
+                    if (p.pending?.payment != null)
+                      InfoBanner(
+                        icon: Icons.hourglass_top,
+                        tone: Tone.warning,
+                        title: 'Payment waiting for confirmation',
+                        message: '${p.pending!.payment!.planName} - ${p.pending!.payment!.amountLabel}, UTR ${p.pending!.payment!.utr}. Premium starts as soon as the admin confirms it.',
+                      )
+                    else
+                      PrimaryButton(label: p.access == 'premium' ? 'Renew / change plan' : 'Upgrade to premium', onPressed: () => context.push(AppRoutes.plans)),
+                    const SectionHeader('Payments & requests', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
+                    if (p.requests.isEmpty)
+                      const Card(
+                        child: ListTile(leading: Icon(Icons.receipt_long_outlined), title: Text('No payments yet')),
+                      )
+                    else
+                      Card(
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < p.requests.length; i++) ...[if (i > 0) const Divider(indent: 56), _RequestTile(r: p.requests[i])],
+                          ],
+                        ),
+                      ),
+                    const SectionHeader('Manage', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
+                    Card(
+                      child: Column(
+                        children: [
+                          AppTile(icon: Icons.swap_horiz, title: 'Plans', onTap: () => context.push(AppRoutes.plans)),
+                          const Divider(indent: 56),
+                          AppTile(icon: Icons.hourglass_bottom, title: 'Trial details', onTap: () => context.push(AppRoutes.trialStatus)),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SectionHeader('Access history', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
-            const Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.play_circle_outline),
-                    title: Text('7-day free trial'),
-                    subtitle: Text('20 Sep - 27 Sep 2026'),
-                    trailing: StatusChip('Active'),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.more_time),
-                    title: Text('Extension request - 7 days'),
-                    subtitle: Text('10 Aug 2026'),
-                    trailing: StatusChip('Approved'),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.workspace_premium_outlined),
-                    title: Text('Premium upgrade'),
-                    subtitle: Text('24 Sep 2026'),
-                    trailing: StatusChip('Paid'),
-                  ),
-                ],
-              ),
-            ),
-            const SectionHeader('Usage', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _Usage(label: 'Secure storage', value: '4.2 GB of 20 GB', progress: 0.21),
-                    SizedBox(height: 16),
-                    _Usage(label: 'Groups', value: '5 of Unlimited', progress: 0.05),
-                    SizedBox(height: 16),
-                    _Usage(label: 'Members in largest group', value: '32 of 500', progress: 0.064),
-                  ],
-                ),
-              ),
-            ),
-            const SectionHeader('Manage', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
-            Card(
-              child: Column(
-                children: [
-                  const AppSwitchTile(icon: Icons.autorenew, title: 'Auto renew', value: true),
-                  const Divider(indent: 56),
-                  AppTile(icon: Icons.swap_horiz, title: 'Change plan', onTap: () => context.push(AppRoutes.plans)),
-                  const Divider(indent: 56),
-                  AppTile(
-                    icon: Icons.hourglass_bottom,
-                    title: 'Trial details',
-                    onTap: () => context.push(AppRoutes.trialStatus),
-                  ),
-                  const Divider(indent: 56),
-                  AppTile(
-                    icon: Icons.cancel_outlined,
-                    title: 'Cancel subscription',
-                    danger: true,
-                    onTap: () => context.confirm(
-                      title: 'Cancel subscription?',
-                      message: 'You will keep Premium until 24 Oct 2026.',
-                      confirmLabel: 'Cancel plan',
-                      danger: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SectionHeader('Payment history', padding: EdgeInsets.fromLTRB(0, 24, 0, 8)),
-            Card(
-              child: Column(
-                children: [
-                  for (var i = 0; i < _payments.length; i++) ...[
-                    if (i > 0) const Divider(indent: 56),
-                    ListTile(
-                      leading: const Icon(Icons.receipt_long_outlined),
-                      title: Text(_payments[i].$2, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text('${_payments[i].$1}  |  ${_payments[i].$3}'),
-                      trailing: StatusChip(_payments[i].$4),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _Usage extends StatelessWidget {
-  const _Usage({required this.label, required this.value, required this.progress});
+class _RequestTile extends StatelessWidget {
+  const _RequestTile({required this.r});
 
-  final String label;
-  final String value;
-  final double progress;
+  final PlanRequest r;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-            Text(value, style: TextStyle(color: context.palette.textSecondary, fontSize: 13)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(value: progress, minHeight: 8),
-        ),
-      ],
+    final pay = r.payment;
+    final status = switch (r.status) {
+      'approved' => pay != null ? 'Paid' : 'Approved',
+      'rejected' => 'Rejected',
+      _ => 'Waiting',
+    };
+    final tone = switch (r.status) {
+      'approved' => Tone.success,
+      'rejected' => Tone.danger,
+      _ => Tone.warning,
+    };
+    final when = r.createdAt == null ? '' : formatDayHeader(r.createdAt!);
+    return ListTile(
+      leading: Icon(pay != null ? Icons.qr_code_2 : Icons.more_time),
+      title: Text(
+        pay != null ? '${pay.planName} - ${pay.amountLabel}' : '${r.kind == 'premium' ? 'Premium' : 'Extension'} request - ${r.days} days',
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(pay != null ? '$when  |  UTR ${pay.utr}' : when),
+      trailing: StatusChip(status, tone: tone),
     );
   }
 }

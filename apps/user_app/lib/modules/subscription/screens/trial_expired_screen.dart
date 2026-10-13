@@ -16,12 +16,7 @@ class TrialExpiredScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
-            onPressed: () => context.go(AppRoutes.home),
-            child: const Text('Continue read only'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => context.go(AppRoutes.home), child: const Text('Continue read only'))],
       ),
       body: FormPage(
         items: [
@@ -41,11 +36,7 @@ class TrialExpiredScreen extends StatelessWidget {
                     title: Text(l.$2),
                     trailing: Icon(Icons.lock_outline, color: context.palette.textSecondary),
                   ),
-                const ListTile(
-                  leading: Icon(Icons.visibility_outlined),
-                  title: Text('Reading existing messages'),
-                  trailing: StatusChip('Allowed'),
-                ),
+                const ListTile(leading: Icon(Icons.visibility_outlined), title: Text('Reading existing messages'), trailing: StatusChip('Allowed')),
               ],
             ),
           ),
@@ -53,21 +44,9 @@ class TrialExpiredScreen extends StatelessWidget {
           const Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: Icon(Icons.more_time),
-                  title: Text('Request extension'),
-                  subtitle: Text('Admin reviews your request'),
-                ),
-                ListTile(
-                  leading: Icon(Icons.check_circle_outline),
-                  title: Text('Approved'),
-                  subtitle: Text('Free, Premium or extended access is activated'),
-                ),
-                ListTile(
-                  leading: Icon(Icons.cancel_outlined),
-                  title: Text('Rejected'),
-                  subtitle: Text('Chat stays locked / limited'),
-                ),
+                ListTile(leading: Icon(Icons.more_time), title: Text('Request extension'), subtitle: Text('Admin reviews your request')),
+                ListTile(leading: Icon(Icons.check_circle_outline), title: Text('Approved'), subtitle: Text('Free, Premium or extended access is activated')),
+                ListTile(leading: Icon(Icons.cancel_outlined), title: Text('Rejected'), subtitle: Text('Chat stays locked / limited')),
               ],
             ),
           ),
@@ -75,17 +54,9 @@ class TrialExpiredScreen extends StatelessWidget {
         bottom: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            PrimaryButton(
-              label: 'Request Extension',
-              icon: Icons.more_time,
-              onPressed: () => context.push(AppRoutes.extensionRequest),
-            ),
+            PrimaryButton(label: 'Upgrade to premium', icon: Icons.workspace_premium_outlined, onPressed: () => context.push(AppRoutes.plans)),
             const SizedBox(height: 10),
-            SecondaryButton(
-              label: 'View Available Plans',
-              icon: Icons.workspace_premium_outlined,
-              onPressed: () => context.push(AppRoutes.plans),
-            ),
+            SecondaryButton(label: 'Request Extension', icon: Icons.more_time, onPressed: () => context.push(AppRoutes.extensionRequest)),
           ],
         ),
       ),

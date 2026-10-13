@@ -6,12 +6,7 @@ import '../data/subscription_repository.dart';
 class TrialStatusScreen extends StatelessWidget {
   const TrialStatusScreen({super.key});
 
-  static const _features = [
-    '1-to-1 chats and groups',
-    'Public, Private & Highly Protected messages',
-    'Secure file viewer',
-    'Group location features',
-  ];
+  static const _features = ['1-to-1 chats and groups', 'Public, Private & Highly Protected messages', 'Secure file viewer', 'Group location features'];
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +52,7 @@ class TrialStatusScreen extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (plan.locked)
-                          Icon(Icons.lock_clock_outlined, size: 48, color: color)
-                        else
-                          Text('${plan.daysLeft}', style: const TextStyle(fontSize: 46, fontWeight: FontWeight.w800)),
+                        if (plan.locked) Icon(Icons.lock_clock_outlined, size: 48, color: color) else Text('${plan.daysLeft}', style: const TextStyle(fontSize: 46, fontWeight: FontWeight.w800)),
                         Text(plan.locked ? 'locked' : 'days left'),
                       ],
                     ),
@@ -70,7 +62,11 @@ class TrialStatusScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(title, textAlign: TextAlign.center, style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: context.text.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 6),
           Text(
             plan.access == 'unclaimed'
@@ -84,12 +80,7 @@ class TrialStatusScreen extends StatelessWidget {
           ),
           if (plan.pending != null) ...[
             const SizedBox(height: 16),
-            InfoBanner(
-              icon: Icons.hourglass_top,
-              tone: Tone.success,
-              title: 'Request sent',
-              message: 'Your ${plan.pending!.kind} request (${plan.pending!.days} days) is waiting for admin approval.',
-            ),
+            InfoBanner(icon: Icons.hourglass_top, tone: Tone.success, title: 'Request sent', message: 'Your ${plan.pending!.kind} request (${plan.pending!.days} days) is waiting for admin approval.'),
           ],
           const SectionHeader('Included', padding: EdgeInsets.fromLTRB(0, 20, 0, 8)),
           for (final f in _features)
@@ -108,7 +99,11 @@ class TrialStatusScreen extends StatelessWidget {
                 subtitle: Text(r.createdAt == null ? '' : formatListTime(r.createdAt)),
                 trailing: StatusChip(
                   r.status[0].toUpperCase() + r.status.substring(1),
-                  tone: r.status == 'approved' ? Tone.success : r.status == 'rejected' ? Tone.danger : Tone.warning,
+                  tone: r.status == 'approved'
+                      ? Tone.success
+                      : r.status == 'rejected'
+                      ? Tone.danger
+                      : Tone.warning,
                 ),
               ),
           ],
@@ -127,10 +122,7 @@ class TrialStatusScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   PrimaryButton(label: 'View plans', icon: Icons.workspace_premium_outlined, onPressed: () => context.push(AppRoutes.plans)),
-                  if (plan.pending == null) ...[
-                    const SizedBox(height: 8),
-                    TextButton(onPressed: () => context.push(AppRoutes.extensionRequest), child: const Text('Request extension')),
-                  ],
+                  if (plan.pending == null) ...[const SizedBox(height: 8), TextButton(onPressed: () => context.push(AppRoutes.extensionRequest), child: const Text('Request extension'))],
                 ],
               ),
       ),

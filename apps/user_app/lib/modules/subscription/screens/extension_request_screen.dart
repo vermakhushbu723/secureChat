@@ -38,12 +38,7 @@ class _ExtensionRequestScreenState extends State<ExtensionRequestScreen> {
     }
   }
 
-  static const _reasons = [
-    'Still evaluating for my group',
-    'Waiting for payment approval',
-    'Faced technical issues',
-    'Other',
-  ];
+  static const _reasons = ['Still evaluating for my group', 'Waiting for payment approval', 'Faced technical issues', 'Other'];
 
   @override
   Widget build(BuildContext context) {
@@ -119,21 +114,9 @@ class _ExtensionRequestScreenState extends State<ExtensionRequestScreen> {
           const Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: Icon(Icons.check_circle_outline),
-                  title: Text('Approve 7 / 30 days'),
-                  subtitle: Text('Extended free access'),
-                ),
-                ListTile(
-                  leading: Icon(Icons.workspace_premium_outlined),
-                  title: Text('Premium'),
-                  subtitle: Text('Premium access granted'),
-                ),
-                ListTile(
-                  leading: Icon(Icons.cancel_outlined),
-                  title: Text('Reject'),
-                  subtitle: Text('Chat stays locked / limited'),
-                ),
+                ListTile(leading: Icon(Icons.check_circle_outline), title: Text('Approve 7 / 30 days'), subtitle: Text('Extended free access')),
+                ListTile(leading: Icon(Icons.workspace_premium_outlined), title: Text('Premium'), subtitle: Text('Premium access granted')),
+                ListTile(leading: Icon(Icons.cancel_outlined), title: Text('Reject'), subtitle: Text('Chat stays locked / limited')),
               ],
             ),
           ),

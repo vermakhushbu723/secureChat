@@ -62,9 +62,11 @@ class _MainShellState extends State<MainShell> {
       GroupsController.instance.ensureStarted();
       AppLayout.currentPath.value = widget.location;
       _offerTrial();
+      _offerUpgrade();
       _openPendingJoin();
     });
     AuthService.instance.user.addListener(_offerTrial);
+    AuthService.instance.user.addListener(_offerUpgrade);
     PendingJoin.code.addListener(_openPendingJoin);
   }
 
@@ -90,9 +92,23 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
+  /// Once per app start: trial over (or ending within a day) -> "Upgrade" popup.
+  static bool _upgradeOffered = false;
+  void _offerUpgrade() {
+    final me = AuthService.instance.user.value;
+    if (_upgradeOffered || me == null || !me.profileCompleted) return;
+    final p = me.subscription;
+    if (!(p.access == 'locked' || (p.access == 'trial' && p.daysLeft <= 1))) return;
+    _upgradeOffered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showUpgradePrompt(context, p);
+    });
+  }
+
   @override
   void dispose() {
     AuthService.instance.user.removeListener(_offerTrial);
+    AuthService.instance.user.removeListener(_offerUpgrade);
     PendingJoin.code.removeListener(_openPendingJoin);
     super.dispose();
   }

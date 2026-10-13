@@ -38,6 +38,31 @@ Future<void> showPlanRequired(BuildContext context, String message) {
   );
 }
 
+/// Once per app start: the 7 day trial ended (or ends within a day) -> "Upgrade" to plans.
+Future<void> showUpgradePrompt(BuildContext context, PlanStatus plan) {
+  final ended = plan.access == 'locked';
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      icon: Icon(ended ? Icons.lock_clock : Icons.hourglass_bottom, size: 36),
+      title: Text(ended ? 'Your free trial has ended' : 'Your free trial ends ${plan.daysLeft <= 0 ? 'today' : 'tomorrow'}'),
+      content: Text(ended
+          ? 'Your 7 day free trial is over, so chats are read only. Upgrade to premium to keep chatting - pay by UPI in a minute.'
+          : 'Upgrade to premium now so your chats keep working without a break.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Not now')),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            context.push(AppRoutes.plans);
+          },
+          child: const Text('Upgrade'),
+        ),
+      ],
+    ),
+  );
+}
+
 bool _claimOpen = false;
 
 /// After signup: "Claim your 7 day free trial". Returns true when the trial was claimed.
