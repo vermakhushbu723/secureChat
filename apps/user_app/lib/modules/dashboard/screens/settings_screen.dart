@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/core.dart';
 
@@ -93,6 +94,13 @@ class _BodyState extends State<_Body> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
+        const _Header('Account'),
+        ListTile(
+          leading: const Icon(Icons.manage_accounts_outlined),
+          title: const Text('Account & Security'),
+          subtitle: const Text('Password, devices, delete my account'),
+          onTap: () => context.push(AppRoutes.accountSecurity),
+        ),
         const _Header('Privacy'),
         SwitchListTile(
           secondary: const Icon(Icons.person_search_outlined),
@@ -188,6 +196,12 @@ class _BodyState extends State<_Body> {
         const _Header('Help'),
         ListTile(leading: const Icon(Icons.help_outline), title: const Text('Help center'), onTap: () => context.push(AppRoutes.helpSupport)),
         ListTile(leading: const Icon(Icons.article_outlined), title: const Text('Terms and privacy policy'), onTap: () => context.push(AppRoutes.policies)),
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('Privacy policy (website)'),
+          subtitle: const Text('prosecurely.online/privacy-policy'),
+          onTap: () => launchUrl(Uri.parse('https://prosecurely.online/privacy-policy/'), mode: LaunchMode.externalApplication),
+        ),
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('App info'),

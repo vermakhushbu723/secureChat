@@ -9,6 +9,23 @@ class AccountSecurityScreen extends StatelessWidget {
     (Icons.tablet_mac, 'Safari on iPad', 'Bhopal - 3 days ago', false),
   ];
 
+  /// Delete my account (Google Play: deletion inside the app). Signs out afterwards.
+  static Future<void> _deleteAccount(BuildContext context) async {
+    final ok = await context.confirm(
+      title: 'Delete your account?',
+      message:
+          'Your profile, mobile number, email, password, devices and location history are deleted and you leave every group. '
+          'Messages you already sent stay with the people who got them, shown as "Deleted user". This cannot be undone.',
+      confirmLabel: 'Delete account',
+      danger: true,
+    );
+    if (!ok || !context.mounted) return;
+    final done = await runAction(context, () => ApiClient.instance.post('/users/me/delete', body: {'confirm': 'DELETE'}), done: 'Your account was deleted');
+    if (!done || !context.mounted) return;
+    await AuthService.instance.logout();
+    if (context.mounted) context.go(AppRoutes.welcome);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,17 +108,24 @@ class AccountSecurityScreen extends StatelessWidget {
             const SectionHeader('Danger zone'),
             GroupedCard(
               children: [
-                AppTile(icon: Icons.download_outlined, title: 'Request account data', onTap: () {}),
+                AppTile(
+                  icon: Icons.download_outlined,
+                  title: 'Request account data',
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Request account data'),
+                      content: const Text('Email support@prosecurely.online from the email address of your account (or write your mobile number). We send a copy of your profile and account data within 30 days.'),
+                      actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+                    ),
+                  ),
+                ),
                 AppTile(
                   icon: Icons.delete_forever_outlined,
                   title: 'Delete my account',
+                  subtitle: 'Removes your profile, number, email and location history',
                   danger: true,
-                  onTap: () => context.confirm(
-                    title: 'Delete account?',
-                    message: 'All your groups, messages and files will be permanently removed.',
-                    confirmLabel: 'Delete',
-                    danger: true,
-                  ),
+                  onTap: () => _deleteAccount(context),
                 ),
               ],
             ),

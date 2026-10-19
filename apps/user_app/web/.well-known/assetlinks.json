@@ -1,10 +1,15 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.securechat.user_app",
-      "sha256_cert_fingerprints": ["B1:B8:99:7F:DF:3A:9E:F6:CA:68:6D:2F:68:24:3B:2B:A8:36:E7:FB:0D:36:13:F8:93:07:F2:74:89:97:DD:D0"]
+      "sha256_cert_fingerprints": [
+        "B1:B8:99:7F:DF:3A:9E:F6:CA:68:6D:2F:68:24:3B:2B:A8:36:E7:FB:0D:36:13:F8:93:07:F2:74:89:97:DD:D0",
+        "BD:C3:9C:10:06:09:56:97:38:7E:C2:14:58:7E:2B:9C:8B:4B:4E:DF:50:27:B7:48:31:7B:D4:54:C3:3E:96:51"
+      ]
     }
   }
 ]
